@@ -1,10 +1,289 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="scroll-smooth">
 <head>
-    <title>ZAMEX Telematics - Próximamente</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zamex Telematics | Inteligencia en Movimiento</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        telematics: {
+                            black: '#05070A',
+                            dark: '#0D1117',
+                            accent: '#00F0FF', // Cyber Cyan
+                            blue: '#0066FF',   // Deep Tech Blue
+                            purple: '#8B5CF6',
+                            gray: '#8B949E'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #05070A;
+            color: #E6EDF3;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            overflow-x: hidden;
+        }
+        .glass {
+            background: rgba(13, 17, 23, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 240, 255, 0.1);
+        }
+        .neon-text {
+            text-shadow: 0 0 10px rgba(0, 240, 255, 0.5), 0 0 20px rgba(0, 240, 255, 0.3);
+        }
+        .gradient-border {
+            position: relative;
+            border-radius: 1rem;
+            background: rgba(13, 17, 23, 0.8);
+            padding: 1px;
+        }
+        .gradient-border::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 1rem;
+            padding: 1px;
+            background: linear-gradient(to bottom right, rgba(0, 240, 255, 0.5), transparent, rgba(139, 92, 246, 0.5));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+        .bg-grid {
+            background-image: linear-gradient(to right, rgba(0, 240, 255, 0.05) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(0, 240, 255, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+    </style>
 </head>
-<body>
-    <h1>ZAMEX Telematics</h1>
-    <p>El cerebro de tu flota está en construcción.</p>
+<body class="antialiased selection:bg-telematics-accent selection:text-telematics-black">
+
+    <!-- Navbar -->
+    <nav class="fixed top-0 w-full z-50 px-6 py-6">
+        <div class="max-w-7xl mx-auto flex justify-between items-center glass px-6 py-4 rounded-2xl">
+            <div class="flex items-center gap-2">
+                <div class="w-10 h-10 bg-gradient-to-br from-telematics-accent to-telematics-blue rounded-lg flex items-center justify-center font-black text-telematics-black shadow-lg shadow-telematics-accent/20">
+                    ZT
+                </div>
+                <span class="text-xl font-display font-bold tracking-tight">ZAMEX<span class="text-telematics-accent">.</span><span class="text-sm font-light text-telematics-gray ml-1">Telematics</span></span>
+            </div>
+            <div class="hidden md:flex gap-8 text-sm font-medium text-telematics-gray">
+                <a href="#soluciones" class="hover:text-telematics-accent transition-colors">Soluciones</a>
+                <a href="#tecnologia" class="hover:text-telematics-accent transition-colors">Tecnología</a>
+                <a href="#contacto" class="hover:text-telematics-accent transition-colors">Contacto</a>
+            </div>
+            <a href="#contacto" class="bg-telematics-accent/10 text-telematics-accent border border-telematics-accent/30 px-5 py-2 rounded-xl text-sm font-bold hover:bg-telematics-accent hover:text-telematics-black transition-all">
+                Demo Gratuita
+            </a>
+        </div>
+    </nav>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="relative min-h-screen flex items-center pt-24 overflow-hidden bg-grid">
+            <!-- Glow background -->
+            <div class="absolute top-1/4 -right-1/4 w-[600px] h-[600px] bg-telematics-accent/10 blur-[120px] rounded-full pointer-events-none"></div>
+            <div class="absolute bottom-0 -left-1/4 w-[500px] h-[500px] bg-telematics-blue/10 blur-[100px] rounded-full pointer-events-none"></div>
+
+            <div class="max-w-7xl mx-auto px-6 relative z-10 grid lg:grid-cols-2 gap-12 items-center">
+                <div>
+                    <span class="inline-block py-1 px-3 mb-6 text-xs font-bold tracking-[0.2em] text-telematics-accent uppercase bg-telematics-accent/10 rounded border border-telematics-accent/20">
+                        Inteligencia en Tiempo Real
+                    </span>
+                    <h1 class="text-5xl md:text-7xl font-display font-extrabold leading-tight mb-8">
+                        El Cerebro de tu <span class="text-transparent bg-clip-text bg-gradient-to-r from-telematics-accent to-telematics-blue">Flota Logística</span>
+                    </h1>
+                    <p class="text-xl text-telematics-gray max-w-xl mb-10 leading-relaxed">
+                        Control total, seguridad inteligente y analítica avanzada. Transformamos datos de telemetría en decisiones estratégicas para tu negocio.
+                    </p>
+                    <div class="flex flex-wrap gap-4">
+                        <a href="#contacto" class="px-8 py-4 bg-telematics-accent text-telematics-black font-bold rounded-2xl shadow-xl shadow-telematics-accent/20 hover:scale-105 active:scale-95 transition-all">
+                            Empezar Ahora
+                        </a>
+                        <a href="#soluciones" class="px-8 py-4 glass text-white font-bold rounded-2xl hover:bg-white/5 transition-all">
+                            Ver Soluciones
+                        </a>
+                    </div>
+                    
+                    <!-- Stats -->
+                    <div class="mt-16 grid grid-cols-3 gap-8 border-t border-white/5 pt-8">
+                        <div>
+                            <p class="text-2xl font-display font-bold text-telematics-accent">24/7</p>
+                            <p class="text-xs text-telematics-gray uppercase tracking-wider">Soporte</p>
+                        </div>
+                        <div>
+                            <p class="text-2xl font-display font-bold text-telematics-accent">99.9%</p>
+                            <p class="text-xs text-telematics-gray uppercase tracking-wider">Uptime</p>
+                        </div>
+                        <div>
+                            <p class="text-2xl font-display font-bold text-telematics-accent">+15%</p>
+                            <p class="text-xs text-telematics-gray uppercase tracking-wider">Eficiencia</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hero Visual -->
+                <div class="relative animate-float">
+                    <div class="absolute -inset-4 bg-gradient-to-r from-telematics-accent to-telematics-blue rounded-[3rem] blur-2xl opacity-10"></div>
+                    <div class="relative glass rounded-[2.5rem] p-4 border border-white/10 overflow-hidden">
+                        <!-- Simulated Dashboard Interface -->
+                        <img src="https://images.unsplash.com/photo-1580674285054-bed31e145f59?auto=format&fit=crop&q=80&w=800" alt="Fleet Intelligence" class="rounded-[2rem] shadow-2xl">
+                        
+                        <!-- Floating Data Cards -->
+                        <div class="absolute top-8 -left-8 glass p-4 rounded-2xl border border-telematics-accent/30 shadow-2xl animate-pulse">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 bg-green-500/20 rounded-full flex items-center justify-center text-green-500">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline></svg>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] text-telematics-gray uppercase">Consumo Fuel</p>
+                                    <p class="text-sm font-bold text-white">-12.5%</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="absolute bottom-12 -right-4 glass p-4 rounded-2xl border border-telematics-blue/30 shadow-2xl">
+                            <div class="flex items-center gap-3">
+                                <div class="w-2 h-2 bg-telematics-accent rounded-full animate-ping"></div>
+                                <p class="text-xs font-bold text-white">Unidad ECO-04: Activa</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Soluciones Section -->
+        <section id="soluciones" class="py-32 bg-telematics-dark/30">
+            <div class="max-w-7xl mx-auto px-6">
+                <div class="text-center max-w-3xl mx-auto mb-20">
+                    <h2 class="text-4xl md:text-5xl font-display font-bold mb-6">Potencia tu Operación</h2>
+                    <p class="text-telematics-gray text-lg">Hardware de grado industrial y software de última generación para el control total de tus activos.</p>
+                </div>
+
+                <div class="grid md:grid-cols-3 gap-8">
+                    <!-- Card 1 -->
+                    <div class="gradient-border group p-8 rounded-3xl transition-transform hover:-translate-y-2 duration-300">
+                        <div class="w-12 h-12 bg-telematics-accent/10 rounded-xl flex items-center justify-center text-telematics-accent mb-6 group-hover:bg-telematics-accent group-hover:text-telematics-black transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                        </div>
+                        <h3 class="text-xl font-bold mb-4">Rastreo Satelital</h3>
+                        <p class="text-telematics-gray text-sm leading-relaxed mb-6">
+                            Localización exacta en tiempo real con redundancia multicanal para cobertura global ininterrumpida.
+                        </p>
+                        <ul class="space-y-2 text-xs text-telematics-gray">
+                            <li class="flex items-center gap-2 font-medium"><span class="text-telematics-accent">✓</span> Geocercas Inteligentes</li>
+                            <li class="flex items-center gap-2 font-medium"><span class="text-telematics-accent">✓</span> Histórico de Rutas</li>
+                        </ul>
+                    </div>
+
+                    <!-- Card 2 -->
+                    <div class="gradient-border group p-8 rounded-3xl transition-transform hover:-translate-y-2 duration-300">
+                        <div class="w-12 h-12 bg-telematics-blue/10 rounded-xl flex items-center justify-center text-telematics-blue mb-6 group-hover:bg-telematics-blue group-hover:text-white transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>
+                        </div>
+                        <h3 class="text-xl font-bold mb-4">Analítica de Combustible</h3>
+                        <p class="text-telematics-gray text-sm leading-relaxed mb-6">
+                            Sensores de precisión para detectar extracciones no autorizadas y optimizar el rendimiento por kilómetro.
+                        </p>
+                        <ul class="space-y-2 text-xs text-telematics-gray">
+                            <li class="flex items-center gap-2 font-medium"><span class="text-telematics-blue">✓</span> Alertas de Drenaje</li>
+                            <li class="flex items-center gap-2 font-medium"><span class="text-telematics-blue">✓</span> Reportes de Eficiencia</li>
+                        </ul>
+                    </div>
+
+                    <!-- Card 3 -->
+                    <div class="gradient-border group p-8 rounded-3xl transition-transform hover:-translate-y-2 duration-300">
+                        <div class="w-12 h-12 bg-telematics-purple/10 rounded-xl flex items-center justify-center text-telematics-purple mb-6 group-hover:bg-telematics-purple group-hover:text-white transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                        </div>
+                        <h3 class="text-xl font-bold mb-4">Seguridad Predictiva</h3>
+                        <p class="text-telematics-gray text-sm leading-relaxed mb-6">
+                            Identificación de hábitos de conducción riesgosos mediante algoritmos de IA y frenado preventivo.
+                        </p>
+                        <ul class="space-y-2 text-xs text-telematics-gray">
+                            <li class="flex items-center gap-2 font-medium"><span class="text-telematics-purple">✓</span> Cámaras ADAS + DSM</li>
+                            <li class="flex items-center gap-2 font-medium"><span class="text-telematics-purple">✓</span> Botón de Pánico</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA / Contacto -->
+        <section id="contacto" class="py-32 relative overflow-hidden">
+            <div class="max-w-5xl mx-auto px-6 relative z-10">
+                <div class="glass p-12 md:p-20 rounded-[3rem] border border-telematics-accent/20 text-center">
+                    <h2 class="text-4xl md:text-6xl font-display font-bold mb-8">¿Listo para evolucionar?</h2>
+                    <p class="text-telematics-gray text-xl mb-12 max-w-2xl mx-auto">Solicita una demo personalizada y descubre cómo podemos reducir tus costos operativos hoy mismo.</p>
+                    
+                    <form class="grid md:grid-cols-2 gap-6 text-left max-w-3xl mx-auto">
+                        <div class="space-y-2">
+                            <label class="text-xs font-bold uppercase tracking-widest text-telematics-gray ml-2">Nombre</label>
+                            <input type="text" class="w-full bg-telematics-black border border-white/10 rounded-2xl px-6 py-4 focus:border-telematics-accent outline-none transition-all" placeholder="Juan Pérez">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-xs font-bold uppercase tracking-widest text-telematics-gray ml-2">Email</label>
+                            <input type="email" class="w-full bg-telematics-black border border-white/10 rounded-2xl px-6 py-4 focus:border-telematics-accent outline-none transition-all" placeholder="juan@empresa.com">
+                        </div>
+                        <div class="md:col-span-2 space-y-2">
+                            <label class="text-xs font-bold uppercase tracking-widest text-telematics-gray ml-2">Mensaje</label>
+                            <textarea class="w-full bg-telematics-black border border-white/10 rounded-2xl px-6 py-4 focus:border-telematics-accent outline-none transition-all h-32" placeholder="Cuéntanos sobre tu flota..."></textarea>
+                        </div>
+                        <button type="submit" class="md:col-span-2 py-4 bg-gradient-to-r from-telematics-accent to-telematics-blue text-telematics-black font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-telematics-accent/20 hover:scale-[1.02] transition-all mt-4">
+                            Enviar Solicitud
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Animated Background shapes -->
+            <div class="absolute top-0 left-0 w-full h-full pointer-events-none opacity-20">
+                <div class="absolute top-10 left-10 w-32 h-32 border-2 border-telematics-accent rounded-full animate-ping"></div>
+                <div class="absolute bottom-20 right-20 w-64 h-64 border border-telematics-blue rounded-full animate-pulse"></div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="py-12 border-t border-white/5">
+        <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-telematics-accent rounded-md flex items-center justify-center font-black text-telematics-black text-xs">
+                    ZT
+                </div>
+                <span class="font-display font-bold uppercase tracking-tighter">Zamex Telematics</span>
+            </div>
+            <p class="text-telematics-gray text-xs">&copy; 2026 ZIA | Zona de Inteligencia Aplicada. Todos los derechos reservados.</p>
+            <div class="flex gap-6">
+                <a href="#" class="text-telematics-gray hover:text-telematics-accent transition-colors">LinkedIn</a>
+                <a href="#" class="text-telematics-gray hover:text-telematics-accent transition-colors">Twitter</a>
+                <a href="#" class="text-telematics-gray hover:text-telematics-accent transition-colors">Privacidad</a>
+            </div>
+        </div>
+    </footer>
+
 </body>
 </html>
