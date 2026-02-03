@@ -4,27 +4,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zamex Telematics | Inteligencia en Órbita</title>
+    <title>Zamex Telematics | Inteligencia Industrial en Movimiento</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link
-        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        space: {
-                            black: '#020617',
+                        telematics: {
+                            black: '#05070A',
                             navy: '#010E28',
-                            blue: '#3B82F6',
-                            sky: '#60A5FA',
-                            card: '#0B1E3B'
+                            blue: '#0066FF',
+                            cyan: '#00F0FF',
+                            gray: '#8B949E',
+                            card: '#0A1221'
                         }
                     },
                     fontFamily: {
                         sans: ['Plus Jakarta Sans', 'sans-serif'],
-                        display: ['Orbitron', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
                     },
                 }
             }
@@ -32,369 +33,366 @@
     </script>
     <style>
         body {
-            background-color: #020617;
+            background-color: #05070A;
             color: #E2E8F0;
             font-family: 'Plus Jakarta Sans', sans-serif;
             overflow-x: hidden;
         }
 
-        .font-display {
-            font-family: 'Orbitron', sans-serif;
-        }
-
-        .hero-bg {
-            background: linear-gradient(to bottom, rgba(2, 6, 23, 0.4), rgba(2, 6, 23, 0.8)),
-                url('https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?auto=format&fit=crop&q=80&w=1920');
+        .hero-industrial {
+            background: linear-gradient(to right, rgba(5, 7, 10, 0.95) 30%, rgba(5, 7, 10, 0.4)),
+                url('https://images.unsplash.com/photo-1519003722824-194d4455a60c?auto=format&fit=crop&q=80&w=1920');
             background-size: cover;
-            background-position: center bottom;
+            background-position: center;
         }
 
-        .wave-container {
-            position: relative;
-            width: 100%;
-            height: 100px;
-            overflow: hidden;
-            line-height: 0;
-            background: transparent;
-        }
-
-        .wave-svg {
-            position: absolute;
-            width: 200%;
-            height: 100%;
-            animation: moveWave 15s linear infinite;
-            opacity: 0.3;
-        }
-
-        @keyframes moveWave {
-            0% {
-                transform: translateX(0);
-            }
-
-            100% {
-                transform: translateX(-50%);
-            }
-        }
-
-        .glass-card {
-            background: rgba(11, 30, 59, 0.6);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(59, 130, 246, 0.2);
+        .glass-industrial {
+            background: rgba(10, 18, 33, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 240, 255, 0.1);
             transition: all 0.3s ease;
         }
 
-        .glass-card:hover {
-            border-color: #60A5FA;
-            box-shadow: 0 0 30px rgba(59, 130, 246, 0.2);
-            transform: translateY(-5px);
+        .glass-industrial:hover {
+            border-color: rgba(0, 240, 255, 0.4);
+            transform: translateY(-4px);
+            box-shadow: 0 10px 30px rgba(0, 240, 255, 0.05);
         }
 
-        .btn-space {
-            background: #60A5FA;
-            color: #020617;
-            font-weight: 700;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(96, 165, 250, 0.4);
+        .bg-tech-grid {
+            background-image: radial-gradient(rgba(0, 240, 255, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
         }
 
-        .btn-space:hover {
-            background: #93C5FD;
-            transform: scale(1.05);
-            box-shadow: 0 6px 20px rgba(96, 165, 250, 0.6);
+        .btn-cyan {
+            background: #00F0FF;
+            color: #05070A;
+            font-weight: 800;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 14px 0 rgba(0, 240, 255, 0.3);
         }
 
-        .text-glow {
-            text-shadow: 0 0 10px rgba(96, 165, 250, 0.5);
+        .btn-cyan:hover {
+            transform: scale(1.02);
+            box-shadow: 0 6px 20px rgba(0, 240, 255, 0.4);
+            filter: brightness(1.1);
         }
 
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #020617;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #1e293b;
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: #334155;
+        .section-tag {
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            color: #00F0FF;
+            display: inline-block;
+            margin-bottom: 24px;
         }
     </style>
 </head>
 
-<body class="antialiased">
+<body class="antialiased selection:bg-telematics-cyan selection:text-telematics-black">
 
-    <!-- Header / Nav -->
-    <nav class="fixed top-0 w-full z-50 py-6 px-6 md:px-12 bg-transparent">
+    <!-- Navbar -->
+    <nav class="fixed top-0 w-full z-50 bg-telematics-black/80 backdrop-blur-md border-b border-white/5 px-6 py-4">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="20" cy="20" r="18" stroke="#60A5FA" stroke-width="2" />
-                    <path d="M10 20C10 14.4772 14.4772 10 20 10V30C14.4772 30 10 25.5228 10 20Z" fill="#60A5FA" />
-                </svg>
-                <div class="flex flex-col">
-                    <span class="font-display text-xl font-black tracking-tighter leading-none italic">A-SPACE</span>
-                    <span
-                        class="text-[10px] uppercase tracking-[0.3em] font-medium text-space-sky">Zam-Telematics</span>
-                </div>
+            <div class="flex items-center gap-2">
+                <div
+                    class="w-8 h-8 bg-telematics-cyan rounded-md flex items-center justify-center font-black text-telematics-black">
+                    Z</div>
+                <span class="font-display font-bold text-xl tracking-tight text-white uppercase">Zamex <span
+                        class="text-telematics-cyan">Telematics</span></span>
             </div>
-            <div class="hidden md:flex gap-10 text-[11px] font-bold uppercase tracking-widest text-slate-400">
-                <a href="#soluciones" class="hover:text-white transition-colors">Soluciones</a>
-                <a href="#precios" class="hover:text-white transition-colors">Planes</a>
-                <a href="#tecnologia" class="hover:text-white transition-colors">Tecnología</a>
+            <div class="hidden md:flex gap-10 text-[11px] font-bold uppercase tracking-widest text-telematics-gray">
+                <a href="#soluciones" class="hover:text-telematics-cyan transition-colors">Soluciones</a>
+                <a href="#precios" class="hover:text-telematics-cyan transition-colors">Planes</a>
+                <a href="#tecnologia" class="hover:text-telematics-cyan transition-colors">Tecnología</a>
             </div>
             <a href="https://wa.me/523511045606?text=Hola%20ZAMEX%20Telematics%2C%20me%20interesa%20una%20cotizaci%C3%B3n%20para%20mi%20flota."
-                class="px-6 py-2 border border-slate-700 rounded text-[10px] font-bold uppercase tracking-widest hover:border-space-sky hover:text-white transition-all">
+                target="_blank"
+                class="px-5 py-2 border border-telematics-cyan text-telematics-cyan rounded text-[10px] font-black uppercase tracking-widest hover:bg-telematics-cyan hover:text-telematics-black transition-all">
                 Cotizar ahora
             </a>
         </div>
     </nav>
 
-    <!-- Hero Section -->
-    <section class="relative min-h-screen flex items-center hero-bg overflow-hidden pt-20">
-        <div class="absolute inset-0 bg-black/40"></div>
-        <div class="max-w-7xl mx-auto px-6 lg:px-12 relative z-10 w-full">
-            <div class="max-w-3xl">
-                <h1
-                    class="font-display text-5xl md:text-8xl font-black leading-tight mb-8 tracking-tighter italic text-glow">
-                    ÓRBITA TU <br> OPERACIÓN
-                </h1>
-                <p class="text-slate-300 text-lg leading-relaxed mb-10 max-w-xl font-light">
-                    Transformamos la gestión de flotas en una misión de alta precisión. Con tecnología satelital de
-                    vanguardia, eliminamos los puntos ciegos y optimizamos cada kilómetro en tiempo real.
-                </p>
-                <a href="https://wa.me/523511045606?text=Hola%20ZAMEX%20Telematics%2C%20me%20interesa%20una%20cotizaci%C3%B3n%20para%20mi%20flota."
-                    class="btn-space px-10 py-4 rounded uppercase text-xs tracking-[0.2em] inline-block">
-                    Empezar Ahora
-                </a>
-            </div>
-        </div>
-    </section>
-
-    <!-- Stats Section -->
-    <section class="py-20 relative bg-space-black">
-        <div class="max-w-7xl mx-auto px-6 grid md:grid-cols-3 gap-8">
-            <!-- Stat 1 -->
-            <div class="glass-card p-12 text-center">
-                <div class="w-16 h-16 mx-auto mb-8 text-space-sky">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
-                        stroke-linejoin="round" class="w-full h-full">
-                        <circle cx="12" cy="12" r="10" />
-                        <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
-                        <path d="M2 12h20" />
-                        <path d="M12 2v20" />
-                        <path d="M12 12a14.5 14.5 0 0 1 0 0" />
-                    </svg>
-                </div>
-                <h3 class="font-display text-lg mb-4 text-slate-400">LTE-M</h3>
-                <p class="font-display text-2xl font-bold mb-2">99.9% UPTIME</p>
-                <p class="text-xs uppercase tracking-widest text-slate-500">Conectividad Global</p>
-            </div>
-            <!-- Stat 2 -->
-            <div class="glass-card p-12 text-center border-t-2 border-t-space-sky">
-                <div class="w-16 h-16 mx-auto mb-8 text-space-sky">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
-                        stroke-linejoin="round" class="w-full h-full">
-                        <path d="M2 20h.01" />
-                        <path d="M7 20h.01" />
-                        <path d="M12 20h.01" />
-                        <path d="M17 20h.01" />
-                        <path d="M22 20h.01" />
-                        <path d="M2 15h.01" />
-                        <path d="M7 15h.01" />
-                        <path d="M12 15h.01" />
-                        <path d="M17 15h.01" />
-                        <path d="M22 15h.01" />
-                        <path d="M2 10h.01" />
-                        <path d="M7 10h.01" />
-                        <path d="M12 10h.01" />
-                        <path d="M17 10h.01" />
-                        <path d="M22 10h.01" />
-                        <path d="M2 5h.01" />
-                        <path d="M7 5h.01" />
-                        <path d="M12 5h.01" />
-                        <path d="M17 5h.01" />
-                        <path d="M22 5h.01" />
-                    </svg>
-                </div>
-                <h3 class="font-display text-lg mb-4 text-slate-400">HI - SPEED</h3>
-                <p class="font-display text-2xl font-bold mb-2">1 SEC POLLING</p>
-                <p class="text-xs uppercase tracking-widest text-slate-500">Transmisión de Datos</p>
-            </div>
-            <!-- Stat 3 -->
-            <div class="glass-card p-12 text-center">
-                <div class="w-16 h-16 mx-auto mb-8 text-space-sky">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
-                        stroke-linejoin="round" class="w-full h-full">
-                        <circle cx="12" cy="12" r="10" />
-                        <path d="M12 6v12" />
-                        <path d="M6 12h12" />
-                    </svg>
-                </div>
-                <h3 class="font-display text-lg mb-4 text-slate-400">PLANETA</h3>
-                <p class="font-display text-2xl font-bold mb-2">COBERTURA TOTAL</p>
-                <p class="text-xs uppercase tracking-widest text-slate-500">Red Global Iridium</p>
-            </div>
-        </div>
-    </section>
-
-    <!-- Wave Divider -->
-    <div class="wave-container">
-        <svg class="wave-svg" viewBox="0 0 1200 120" preserveAspectRatio="none">
-            <path d="M0,60 C150,110 350,10 500,60 C650,110 850,10 1000,60 C1150,110 1350,10 1500,60 L1500,120 L0,120 Z"
-                fill="#3B82F6"></path>
-        </svg>
-    </div>
-
-    <!-- Mission Section (Reference Style) -->
-    <section id="tecnologia" class="py-32 bg-space-black">
-        <div class="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-20 items-center">
-            <div>
-                <span class="text-space-sky text-[11px] font-bold uppercase tracking-[0.3em] mb-4 inline-block">—
-                    NUESTRA MISIÓN</span>
-                <h2 class="font-display text-4xl md:text-5xl font-black mb-8 italic tracking-tighter">TECNOLOGÍA <br>
-                    FMC130</h2>
-                <p class="text-slate-400 text-lg leading-relaxed mb-12 font-light">
-                    Utilizamos hardware Teltonika de grado industrial, el estándar de oro europeo para la gestión de
-                    flotas. Diseñado para soportar vibraciones extremas y climas hostiles, garantizando que tu activo
-                    más valioso esté siempre bajo control.
-                </p>
-                <a href="https://wa.me/523511045606?text=Hola%20ZAMEX%20Telematics%2C%20me%20interesa%20una%20cotizaci%C3%B3n%20para%20mi%20flota."
-                    class="btn-space px-8 py-3 rounded text-[10px] uppercase tracking-widest inline-block">Ver Ficha
-                    Técnica</a>
-            </div>
-            <div class="relative">
-                <div class="absolute -inset-4 bg-space-blue/20 blur-2xl rounded-full"></div>
-                <img src="https://images.unsplash.com/photo-1541185933-ef5d8ed016c2?auto=format&fit=crop&q=80&w=800"
-                    alt="Space Tech"
-                    class="relative z-10 rounded-lg shadow-2xl grayscale hover:grayscale-0 transition-all duration-700">
-                <div class="absolute -bottom-10 -left-10 w-64 h-64 border-l border-b border-space-sky/30"></div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Pricing Section -->
-    <section id="precios" class="py-32 bg-space-navy/20">
-        <div class="max-w-7xl mx-auto px-6">
-            <div class="text-center mb-24">
-                <h2 class="font-display text-4xl font-black mb-4 italic tracking-tighter">PLANES DE INVERSIÓN</h2>
-                <p class="text-slate-500 uppercase tracking-[0.4em] text-[10px] font-bold">Niveles de Despliegue
-                    Operativo</p>
-            </div>
-
-            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <!-- Plan 1 -->
-                <div class="glass-card p-10 flex flex-col items-center">
-                    <h4 class="text-[10px] uppercase tracking-[0.4em] font-bold text-space-sky mb-10">CORE GPS</h4>
-                    <p class="font-display text-4xl font-black mb-2">$4,000</p>
-                    <p class="text-[10px] text-slate-500 uppercase tracking-widest mb-10 italic">Instalación Única</p>
-                    <div class="w-full text-center py-4 border-y border-white/5 mb-10">
-                        <p class="text-2xl font-display font-bold text-white">$400</p>
-                        <p class="text-[9px] uppercase tracking-widest text-slate-400">Renta Mensual</p>
-                    </div>
-                </div>
-
-                <!-- Plan 2 -->
-                <div class="glass-card p-10 flex flex-col items-center">
-                    <h4 class="text-[10px] uppercase tracking-[0.4em] font-bold text-space-sky mb-10">TEMPERATURE</h4>
-                    <p class="font-display text-4xl font-black mb-2">$3,000</p>
-                    <p class="text-[10px] text-slate-500 uppercase tracking-widest mb-10 italic">Sensor BLE</p>
-                    <div class="w-full text-center py-4 border-y border-white/5 mb-10">
-                        <p class="text-2xl font-display font-bold text-white">$350</p>
-                        <p class="text-[9px] uppercase tracking-widest text-slate-400">Renta Mensual</p>
-                    </div>
-                </div>
-
-                <!-- Plan 3 (Upcoming) -->
-                <div class="glass-card p-10 flex flex-col items-center relative overflow-hidden grayscale opacity-80">
-                    <div class="absolute top-0 right-0 bg-white/10 px-4 py-1 text-[8px] uppercase tracking-widest">
-                        Próximamente</div>
-                    <h4 class="text-[10px] uppercase tracking-[0.4em] font-bold text-slate-400 mb-10">FUEL SENSOR</h4>
-                    <p class="font-display text-4xl font-black mb-2">$6,500</p>
-                    <p class="text-[10px] text-slate-500 uppercase tracking-widest mb-10 italic">Alta Precisión</p>
-                    <div class="w-full text-center py-4 border-y border-white/5 mb-10">
-                        <p class="text-2xl font-display font-bold text-white">$600</p>
-                        <p class="text-[9px] uppercase tracking-widest text-slate-400">Renta Mensual</p>
-                    </div>
-                </div>
-
-                <!-- Plan 4 (Full) -->
-                <div class="glass-card p-10 flex flex-col items-center bg-space-sky text-space-black">
-                    <h4 class="text-[10px] uppercase tracking-[0.4em] font-black text-space-navy mb-10">ZAMEX FULL</h4>
-                    <p class="font-display text-4xl font-black mb-2">$12,500</p>
-                    <p class="text-[10px] text-space-navy/60 uppercase tracking-widest mb-10 italic">Despliegue Total
+    <main>
+        <!-- Hero Section -->
+        <section class="relative min-h-screen flex items-center hero-industrial pt-20">
+            <div class="max-w-7xl mx-auto px-6 w-full">
+                <div class="max-w-3xl">
+                    <span class="section-tag">Telemetría de Grado Industrial</span>
+                    <h1
+                        class="font-display text-5xl md:text-7xl font-extrabold leading-tight mb-8 text-white tracking-tight">
+                        Control Total de tu <br> <span
+                            class="text-transparent bg-clip-text bg-gradient-to-r from-white to-telematics-cyan/60">Flota
+                            Pesada</span>
+                    </h1>
+                    <p class="text-telematics-gray text-lg md:text-xl leading-relaxed mb-10 max-w-xl font-normal">
+                        Ingeniería europea aplicada al transporte logístico. Monitoreo de combustible, temperatura y
+                        seguridad en tiempo real con 99.9% de precisión.
                     </p>
-                    <div class="w-full text-center py-4 border-y border-space-navy/10 mb-10">
-                        <p class="text-2xl font-display font-black">$1,200</p>
-                        <p class="text-[9px] uppercase tracking-widest text-space-navy/70">Mensual Unificado</p>
+                    <div class="flex flex-wrap gap-4">
+                        <a href="https://wa.me/523511045606?text=Hola%20ZAMEX%20Telematics%2C%20me%20interesa%20una%20cotizaci%C3%B3n%20para%20mi%20flota."
+                            class="btn-cyan px-10 py-4 rounded uppercase text-xs tracking-widest">
+                            Hablar con Ventas
+                        </a>
+                        <a href="#tecnologia"
+                            class="px-10 py-4 border border-white/20 text-white rounded font-bold uppercase text-xs tracking-widest hover:bg-white/5 transition-all">
+                            Saber más
+                        </a>
                     </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stats Grid -->
+        <section class="py-24 bg-telematics-black relative z-10 -mt-32">
+            <div class="max-w-7xl mx-auto px-6 grid md:grid-cols-4 gap-6">
+                <div class="glass-industrial p-8 rounded-xl border-l-2 border-l-telematics-cyan">
+                    <p class="text-[10px] font-black uppercase tracking-widest text-telematics-gray mb-2">Precisión</p>
+                    <p class="font-display text-3xl font-bold text-white mb-2">99.8%</p>
+                    <p class="text-xs text-telematics-gray">Lectura de combustible CAN-bus</p>
+                </div>
+                <div class="glass-industrial p-8 rounded-xl">
+                    <p class="text-[10px] font-black uppercase tracking-widest text-telematics-gray mb-2">Seguridad</p>
+                    <p class="font-display text-3xl font-bold text-white mb-2">PRO</p>
+                    <p class="text-xs text-telematics-gray">Bloqueo de motor 24/7</p>
+                </div>
+                <div class="glass-industrial p-8 rounded-xl">
+                    <p class="text-[10px] font-black uppercase tracking-widest text-telematics-gray mb-2">Hardware</p>
+                    <p class="font-display text-3xl font-bold text-white mb-2">EU</p>
+                    <p class="text-xs text-telematics-gray">Estándar militar Teltonika</p>
+                </div>
+                <div class="glass-industrial p-8 rounded-xl">
+                    <p class="text-[10px] font-black uppercase tracking-widest text-telematics-gray mb-2">Soporte</p>
+                    <p class="font-display text-3xl font-bold text-white mb-2">MX</p>
+                    <p class="text-xs text-telematics-gray">Atención técnica local</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pricing / Inversión -->
+        <section id="precios" class="py-32 bg-tech-grid border-y border-white/5">
+            <div class="max-w-7xl mx-auto px-6">
+                <div class="text-center max-w-2xl mx-auto mb-20">
+                    <span class="section-tag">Transparencia Total</span>
+                    <h2 class="font-display text-4xl font-bold text-white mb-4 italic italic">Modelos de Inversión</h2>
+                    <p class="text-telematics-gray">Planes escalables diseñados para flotas profesionales en
+                        crecimiento.</p>
+                </div>
+
+                <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- Unit 1 -->
+                    <div class="glass-industrial p-8 rounded-2xl flex flex-col">
+                        <div class="mb-10 text-telematics-cyan">
+                            <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                                <circle cx="12" cy="10" r="3" />
+                            </svg>
+                        </div>
+                        <h4 class="font-bold text-white uppercase tracking-widest text-xs mb-4">Módulo GPS Profesional
+                        </h4>
+                        <div class="mb-8">
+                            <p class="text-3xl font-display font-black text-white">$4,000</p>
+                            <p class="text-[9px] uppercase tracking-widest text-telematics-gray mt-1">Costo de Equipo
+                            </p>
+                        </div>
+                        <div class="mt-auto pt-6 border-t border-white/5">
+                            <p class="text-2xl font-display font-bold text-telematics-cyan">$400</p>
+                            <p class="text-[9px] uppercase tracking-widest text-telematics-gray">Renta Mensual</p>
+                        </div>
+                    </div>
+
+                    <!-- Unit 2 -->
+                    <div class="glass-industrial p-8 rounded-2xl flex flex-col">
+                        <div class="mb-10 text-telematics-cyan">
+                            <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z" />
+                            </svg>
+                        </div>
+                        <h4 class="font-bold text-white uppercase tracking-widest text-xs mb-4">Sensor Temperatura BLE
+                        </h4>
+                        <div class="mb-8">
+                            <p class="text-3xl font-display font-black text-white">$3,000</p>
+                            <p class="text-[9px] uppercase tracking-widest text-telematics-gray mt-1">Costo de Equipo
+                            </p>
+                        </div>
+                        <div class="mt-auto pt-6 border-t border-white/5">
+                            <p class="text-2xl font-display font-bold text-telematics-cyan">$350</p>
+                            <p class="text-[9px] uppercase tracking-widest text-telematics-gray">Renta Mensual</p>
+                        </div>
+                    </div>
+
+                    <!-- Unit 3 -->
+                    <div class="glass-industrial p-8 rounded-2xl flex flex-col bg-white/5 relative overflow-hidden">
+                        <div
+                            class="absolute top-2 right-2 text-[8px] font-bold text-telematics-cyan px-2 py-1 bg-telematics-cyan/10 rounded uppercase">
+                            Próximamente</div>
+                        <div class="mb-10 text-telematics-gray opacity-50">
+                            <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 2v20M2 12h20" />
+                            </svg>
+                        </div>
+                        <h4 class="font-bold text-white/50 uppercase tracking-widest text-xs mb-4">Cuenta Litros
+                            Precisión</h4>
+                        <div class="mb-8 opacity-50">
+                            <p class="text-3xl font-display font-black text-white">$6,500</p>
+                            <p class="text-[9px] uppercase tracking-widest text-telematics-gray mt-1">Costo de Equipo
+                            </p>
+                        </div>
+                        <div class="mt-auto pt-6 border-t border-white/5 opacity-50">
+                            <p class="text-2xl font-display font-bold text-telematics-cyan">$600</p>
+                            <p class="text-[9px] uppercase tracking-widest text-telematics-gray">Renta Mensual</p>
+                        </div>
+                    </div>
+
+                    <!-- Unit 4 - Professional Pack -->
+                    <div
+                        class="glass-industrial p-8 rounded-2xl flex flex-col bg-telematics-cyan text-telematics-black border-none ring-4 ring-telematics-cyan/20">
+                        <div class="mb-10 text-telematics-black">
+                            <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                <path d="M20 6L9 17l-5-5" />
+                            </svg>
+                        </div>
+                        <h4 class="font-black uppercase tracking-widest text-xs mb-4">PAQUETE ZAMEX FULL</h4>
+                        <div class="mb-8">
+                            <p class="text-4xl font-display font-black">$12,500</p>
+                            <p class="text-[9px] uppercase tracking-widest opacity-70 mt-1 font-bold">Instalación
+                                Bonificada</p>
+                        </div>
+                        <div class="mt-auto pt-6 border-t border-black/10">
+                            <p class="text-3xl font-display font-black">$1,200</p>
+                            <p class="text-[9px] uppercase tracking-widest opacity-70 font-bold">Renta Todo Incluido</p>
+                        </div>
+                        <a href="https://wa.me/523511045606?text=Hola%20ZAMEX%20Telematics%2C%20me%20interesa%20una%20cotizaci%C3%B3n%20para%20mi%20flota."
+                            class="mt-8 w-full py-4 bg-telematics-black text-white text-[10px] font-black uppercase tracking-widest text-center rounded block shadow-xl transition-all hover:brightness-125 hover:-translate-y-1">Contratar</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Specialized Services -->
+        <section id="soluciones" class="py-32 bg-telematics-navy/30">
+            <div class="max-w-7xl mx-auto px-6">
+                <div class="grid lg:grid-cols-2 gap-20 items-center">
+                    <div>
+                        <span class="section-tag">Módulos de Seguridad</span>
+                        <h2
+                            class="font-display text-4xl md:text-5xl font-bold text-white mb-8 leading-tight tracking-tight uppercase italic">
+                            Servicios Plus: <br>Control Total</h2>
+                        <p class="text-telematics-gray text-lg mb-12 font-light leading-relaxed">Capacidades avanzadas
+                            para operaciones críticas que requieren validación de operador y protocolos de
+                            inmovilización activa.</p>
+
+                        <div class="grid sm:grid-cols-2 gap-8">
+                            <div class="glass-industrial p-6 rounded-xl border-t-2 border-t-red-500">
+                                <h5 class="text-white font-bold text-xs uppercase mb-3 tracking-widest">Inmovilización
+                                </h5>
+                                <p class="text-xs text-telematics-gray leading-relaxed">Paro de motor remoto activo vía
+                                    software 21/7 en caso de robo o ruta no autorizada.</p>
+                            </div>
+                            <div class="glass-industrial p-6 rounded-xl border-t-2 border-t-telematics-cyan">
+                                <h5 class="text-white font-bold text-xs uppercase mb-3 tracking-widest">Validación RFID
+                                </h5>
+                                <p class="text-xs text-telematics-gray leading-relaxed">Bloqueo de encendido mediante
+                                    Key Card. Solo operadores certificados arrancan la unidad.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="relative group">
+                        <div
+                            class="absolute -inset-1 bg-telematics-cyan/20 blur opacity-25 group-hover:opacity-50 transition duration-1000">
+                        </div>
+                        <img src="https://images.unsplash.com/photo-1512413316925-fd47934c1989?auto=format&fit=crop&q=80&w=800"
+                            alt="Control Room"
+                            class="relative rounded-2xl shadow-2xl filter saturate-[0.2] hover:saturate-100 transition-all duration-700 aspect-video object-cover">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Technical Excellence -->
+        <section id="tecnologia" class="py-32 bg-telematics-black bg-tech-grid">
+            <div class="max-w-7xl mx-auto px-6">
+                <div class="flex flex-col lg:flex-row gap-20 items-center">
+                    <div class="lg:w-1/3">
+                        <span class="section-tag">Hardware Industrial</span>
+                        <h2 class="font-display text-4xl font-bold text-white mb-8 italic">Teltonika FMC130</h2>
+                        <div class="p-6 border border-white/10 rounded-xl bg-white/5 space-y-6">
+                            <div class="flex gap-4">
+                                <div class="text-telematics-cyan font-black">01</div>
+                                <p class="text-xs text-telematics-gray uppercase tracking-widest font-bold">Standard
+                                    Grado Militar (-40ºC / 85ºC)</p>
+                            </div>
+                            <div class="flex gap-4">
+                                <div class="text-telematics-cyan font-black">02</div>
+                                <p class="text-xs text-telematics-gray uppercase tracking-widest font-bold">Protocolo
+                                    Codec 8 Alta Eficiencia</p>
+                            </div>
+                            <div class="flex gap-4">
+                                <div class="text-telematics-cyan font-black">03</div>
+                                <p class="text-xs text-telematics-gray uppercase tracking-widest font-bold">Memoria
+                                    Blackbox (Sin Puntos Ciegos)</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="lg:w-2/3 grid sm:grid-cols-2 gap-8">
+                        <div class="glass-industrial p-10 rounded-2xl">
+                            <h4 class="text-white font-bold mb-4 uppercase text-xs tracking-[0.2em]">Conectividad Dual
+                            </h4>
+                            <p class="text-sm text-telematics-gray leading-relaxed">Integración nativa de sensores
+                                cableados CAN-bus y dispositivos inalámbricos Bluetooth BLE en un solo HUB industrial.
+                            </p>
+                        </div>
+                        <div class="glass-industrial p-10 rounded-2xl">
+                            <h4 class="text-white font-bold mb-4 uppercase text-xs tracking-[0.2em]">Blackbox
+                                Inteligente</h4>
+                            <p class="text-sm text-telematics-gray leading-relaxed">Si la señal se pierde, el equipo
+                                almacena localmente y sube automáticamente al recuperar conexión. Cero pérdida de datos.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Final CTA -->
+        <section class="py-32 bg-telematics-cyan overflow-hidden relative">
+            <div class="absolute inset-0 bg-telematics-black/10"></div>
+            <div class="max-w-4xl mx-auto px-6 relative z-10 text-center">
+                <h2
+                    class="font-display text-4xl md:text-6xl font-black text-telematics-black mb-8 italic tracking-tighter">
+                    ¿LISTO PARA OPTIMIZAR?</h2>
+                <p class="text-telematics-black/70 text-lg md:text-xl font-bold mb-12 uppercase tracking-widest">Cotiza
+                    el equipamiento tecnológico de tu flota hoy mismo.</p>
+                <div class="flex flex-col sm:flex-row justify-center gap-6">
                     <a href="https://wa.me/523511045606?text=Hola%20ZAMEX%20Telematics%2C%20me%20interesa%20una%20cotizaci%C3%B3n%20para%20mi%20flota."
-                        class="w-full py-4 bg-space-navy text-white text-[10px] font-bold uppercase tracking-[0.2em] text-center hover:bg-black transition-colors">Contratar
-                        Full</a>
+                        target="_blank"
+                        class="px-12 py-5 bg-telematics-black text-white font-black uppercase tracking-[0.2em] rounded text-sm shadow-2xl hover:brightness-125 transition-all">WhatsApp
+                        Ventas</a>
+                    <a href="mailto:ventas@zamexia.com"
+                        class="px-12 py-5 border-2 border-telematics-black text-telematics-black font-black uppercase tracking-[0.2em] rounded text-sm hover:bg-telematics-black hover:text-white transition-all">Email
+                        Corporativo</a>
                 </div>
             </div>
-        </div>
-    </section>
+        </section>
+    </main>
 
-    <!-- Function / Feature Section -->
-    <section class="py-32 bg-space-black relative overflow-hidden">
-        <div class="max-w-7xl mx-auto px-6">
-            <div class="grid lg:grid-cols-2 gap-20 items-end">
-                <div class="order-2 lg:order-1">
-                    <img src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=800"
-                        alt="Satellite Connection"
-                        class="rounded-lg shadow-2xl grayscale blur-[1px] hover:blur-0 transition-all duration-700">
-                </div>
-                <div class="order-1 lg:order-2 pb-10">
-                    <span class="text-space-sky text-[11px] font-bold uppercase tracking-[0.3em] mb-4 inline-block">—
-                        FUNCIONALIDAD</span>
-                    <h2
-                        class="font-display text-4xl md:text-5xl font-black mb-8 italic tracking-tighter uppercase leading-none">
-                        SATÉLITE <br> & CONTROL</h2>
-                    <ul class="space-y-6 text-sm">
-                        <li class="flex items-start gap-4">
-                            <span class="text-space-sky font-bold">01</span>
-                            <span class="text-slate-400">Paro de Motor Remoto: Inmovilización instantánea vía
-                                satélite.</span>
-                        </li>
-                        <li class="flex items-start gap-4">
-                            <span class="text-space-sky font-bold">02</span>
-                            <span class="text-slate-400">Control de Encendido RFID: Solo manos autorizadas en el
-                                volante.</span>
-                        </li>
-                        <li class="flex items-start gap-4">
-                            <span class="text-space-sky font-bold">03</span>
-                            <span class="text-slate-400">Memoria Blackbox: Registro ininterrumpido sin zonas
-                                muertas.</span>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
-        <!-- Animated Background Decor -->
-        <div class="absolute -bottom-20 -right-20 w-96 h-96 bg-space-blue/10 blur-[120px] rounded-full"></div>
-    </section>
-
-    <!-- Footer -->
-    <footer class="py-20 border-t border-white/5 bg-space-black">
+    <footer class="py-20 bg-telematics-black border-t border-white/5">
         <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-12">
-            <div class="flex items-center gap-3">
-                <div class="font-display text-2xl font-black tracking-tighter leading-none italic">A-SPACE</div>
+            <div class="flex items-center gap-2">
+                <div
+                    class="w-6 h-6 bg-telematics-cyan rounded flex items-center justify-center font-black text-telematics-black text-[10px]">
+                    Z</div>
+                <span class="font-display font-bold text-white uppercase text-sm tracking-widest">Zamex <span
+                        class="text-telematics-cyan">Telematics</span></span>
             </div>
-            <div class="flex flex-col items-center md:items-end gap-4">
-                <p class="text-[10px] uppercase tracking-[0.5em] text-slate-600">&copy; 2026 ZAMEX TELEMATICS. ENGINE BY
-                    ZIA.</p>
-                <div class="flex gap-8 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                    <a href="#" class="hover:text-white transition-colors">LinkedIn</a>
-                    <a href="#" class="hover:text-white transition-colors">Privacidad</a>
-                    <a href="#" class="hover:text-white transition-colors">Soporte</a>
-                </div>
+            <p class="text-[10px] uppercase tracking-[0.5em] text-telematics-gray">&copy; 2026 ZAMEX | ENGINE BY ZIA</p>
+            <div class="flex gap-8">
+                <a href="#"
+                    class="text-[10px] font-bold uppercase tracking-widest text-telematics-gray hover:text-white transition-colors">LinkedIn</a>
+                <a href="#"
+                    class="text-[10px] font-bold uppercase tracking-widest text-telematics-gray hover:text-white transition-colors">Privacidad</a>
             </div>
         </div>
     </footer>
