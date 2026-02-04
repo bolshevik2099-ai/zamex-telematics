@@ -200,91 +200,119 @@
                         crecimiento.</p>
                 </div>
 
-                <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <!-- Unit 1 -->
-                    <div class="glass-industrial p-8 rounded-2xl flex flex-col">
-                        <div class="mb-10 text-telematics-cyan">
-                            <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                                <circle cx="12" cy="10" r="3" />
-                            </svg>
-                        </div>
-                        <h4 class="font-bold text-white uppercase tracking-widest text-xs mb-4">Módulo GPS Profesional
-                        </h4>
-                        <div class="mb-8">
-                            <p class="text-3xl font-display font-black text-white">$4,000</p>
-                            <p class="text-[9px] uppercase tracking-widest text-telematics-gray mt-1">Costo de Equipo
-                            </p>
-                        </div>
-                        <div class="mt-auto pt-6 border-t border-white/5">
-                            <p class="text-2xl font-display font-bold text-telematics-cyan">$400</p>
-                            <p class="text-[9px] uppercase tracking-widest text-telematics-gray">Renta Mensual</p>
-                        </div>
-                    </div>
+                <div class="relative group">
+                    <!-- Navigation Arrows (Mobile) -->
+                    <button
+                        onclick="document.getElementById('pricing-container').scrollBy({left: -300, behavior: 'smooth'})"
+                        class="absolute left-0 top-1/2 -translate-y-1/2 z-20 p-3 bg-telematics-black/80 text-telematics-cyan rounded-full backdrop-blur-md md:hidden border border-telematics-cyan/50 shadow-lg hover:scale-110 active:scale-95 transition-all -ml-2">
+                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                        </svg>
+                    </button>
+                    <button
+                        onclick="document.getElementById('pricing-container').scrollBy({left: 300, behavior: 'smooth'})"
+                        class="absolute right-0 top-1/2 -translate-y-1/2 z-20 p-3 bg-telematics-black/80 text-telematics-cyan rounded-full backdrop-blur-md md:hidden border border-telematics-cyan/50 shadow-lg hover:scale-110 active:scale-95 transition-all -mr-2">
+                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </button>
 
-                    <!-- Unit 2 -->
-                    <div class="glass-industrial p-8 rounded-2xl flex flex-col">
-                        <div class="mb-10 text-telematics-cyan">
-                            <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z" />
-                            </svg>
-                        </div>
-                        <h4 class="font-bold text-white uppercase tracking-widest text-xs mb-4">Sensor Temperatura BLE
-                        </h4>
-                        <div class="mb-8">
-                            <p class="text-3xl font-display font-black text-white">$3,000</p>
-                            <p class="text-[9px] uppercase tracking-widest text-telematics-gray mt-1">Costo de Equipo
-                            </p>
-                        </div>
-                        <div class="mt-auto pt-6 border-t border-white/5">
-                            <p class="text-2xl font-display font-bold text-telematics-cyan">$350</p>
-                            <p class="text-[9px] uppercase tracking-widest text-telematics-gray">Renta Mensual</p>
-                        </div>
-                    </div>
-
-                    <!-- Unit 3 -->
-                    <div class="glass-industrial p-8 rounded-2xl flex flex-col bg-white/5 relative overflow-hidden">
+                    <!-- Scroll Container -->
+                    <div id="pricing-container"
+                        class="flex md:grid md:grid-cols-2 lg:grid-cols-4 gap-6 overflow-x-auto md:overflow-visible snap-x snap-mandatory md:snap-none scroll-smooth pb-8 md:pb-0 px-2 md:px-0 no-scrollbar">
+                        <!-- Unit 1 -->
                         <div
-                            class="absolute top-2 right-2 text-[8px] font-bold text-telematics-cyan px-2 py-1 bg-telematics-cyan/10 rounded uppercase">
-                            Próximamente</div>
-                        <div class="mb-10 text-telematics-gray opacity-50">
-                            <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M12 2v20M2 12h20" />
-                            </svg>
+                            class="glass-industrial p-8 rounded-2xl flex flex-col min-w-[85%] sm:min-w-[50%] md:min-w-0 snap-center">
+                            <div class="mb-10 text-telematics-cyan">
+                                <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                                    <circle cx="12" cy="10" r="3" />
+                                </svg>
+                            </div>
+                            <h4 class="font-bold text-white uppercase tracking-widest text-xs mb-4">Módulo GPS
+                                Profesional</h4>
+                            <div class="mb-8">
+                                <p class="text-3xl font-display font-black text-white">$4,000</p>
+                                <p class="text-[9px] uppercase tracking-widest text-telematics-gray mt-1">Costo de
+                                    Equipo</p>
+                            </div>
+                            <div class="mt-auto pt-6 border-t border-white/5">
+                                <p class="text-2xl font-display font-bold text-telematics-cyan">$400</p>
+                                <p class="text-[9px] uppercase tracking-widest text-telematics-gray">Renta Mensual</p>
+                            </div>
                         </div>
-                        <h4 class="font-bold text-white/50 uppercase tracking-widest text-xs mb-4">Cuenta Litros
-                            Precisión</h4>
-                        <div class="mb-8 opacity-50">
-                            <p class="text-3xl font-display font-black text-white">$6,500</p>
-                            <p class="text-[9px] uppercase tracking-widest text-telematics-gray mt-1">Costo de Equipo
-                            </p>
-                        </div>
-                        <div class="mt-auto pt-6 border-t border-white/5 opacity-50">
-                            <p class="text-2xl font-display font-bold text-telematics-cyan">$600</p>
-                            <p class="text-[9px] uppercase tracking-widest text-telematics-gray">Renta Mensual</p>
-                        </div>
-                    </div>
 
-                    <!-- Unit 4 - Professional Pack -->
-                    <div
-                        class="glass-industrial p-8 rounded-2xl flex flex-col bg-telematics-cyan text-telematics-black border-none ring-4 ring-telematics-cyan/20">
-                        <div class="mb-10 text-telematics-black">
-                            <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                                <path d="M20 6L9 17l-5-5" />
-                            </svg>
+                        <!-- Unit 2 -->
+                        <div
+                            class="glass-industrial p-8 rounded-2xl flex flex-col min-w-[85%] sm:min-w-[50%] md:min-w-0 snap-center">
+                            <div class="mb-10 text-telematics-cyan">
+                                <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z" />
+                                </svg>
+                            </div>
+                            <h4 class="font-bold text-white uppercase tracking-widest text-xs mb-4">Sensor Temperatura
+                                BLE</h4>
+                            <div class="mb-8">
+                                <p class="text-3xl font-display font-black text-white">$3,000</p>
+                                <p class="text-[9px] uppercase tracking-widest text-telematics-gray mt-1">Costo de
+                                    Equipo</p>
+                            </div>
+                            <div class="mt-auto pt-6 border-t border-white/5">
+                                <p class="text-2xl font-display font-bold text-telematics-cyan">$350</p>
+                                <p class="text-[9px] uppercase tracking-widest text-telematics-gray">Renta Mensual</p>
+                            </div>
                         </div>
-                        <h4 class="font-black uppercase tracking-widest text-xs mb-4">PAQUETE ZAMEX FULL</h4>
-                        <div class="mb-8">
-                            <p class="text-4xl font-display font-black">$12,500</p>
-                            <p class="text-[9px] uppercase tracking-widest opacity-70 mt-1 font-bold">Instalación
-                                Unificada</p>
+
+                        <!-- Unit 3 -->
+                        <div
+                            class="glass-industrial p-8 rounded-2xl flex flex-col bg-white/5 relative overflow-hidden min-w-[85%] sm:min-w-[50%] md:min-w-0 snap-center">
+                            <div
+                                class="absolute top-2 right-2 text-[8px] font-bold text-telematics-cyan px-2 py-1 bg-telematics-cyan/10 rounded uppercase">
+                                Próximamente</div>
+                            <div class="mb-10 text-telematics-gray opacity-50">
+                                <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M12 2v20M2 12h20" />
+                                </svg>
+                            </div>
+                            <h4 class="font-bold text-white/50 uppercase tracking-widest text-xs mb-4">Cuenta Litros
+                                Precisión</h4>
+                            <div class="mb-8 opacity-50">
+                                <p class="text-3xl font-display font-black text-white">$6,500</p>
+                                <p class="text-[9px] uppercase tracking-widest text-telematics-gray mt-1">Costo de
+                                    Equipo</p>
+                            </div>
+                            <div class="mt-auto pt-6 border-t border-white/5 opacity-50">
+                                <p class="text-2xl font-display font-bold text-telematics-cyan">$600</p>
+                                <p class="text-[9px] uppercase tracking-widest text-telematics-gray">Renta Mensual</p>
+                            </div>
                         </div>
-                        <div class="mt-auto pt-6 border-t border-black/10">
-                            <p class="text-3xl font-display font-black">$1,200</p>
-                            <p class="text-[9px] uppercase tracking-widest opacity-70 font-bold">Renta Todo Incluido</p>
+
+                        <!-- Unit 4 - Professional Pack -->
+                        <div
+                            class="glass-industrial p-8 rounded-2xl flex flex-col bg-telematics-cyan text-telematics-black border-none ring-4 ring-telematics-cyan/20 min-w-[85%] sm:min-w-[50%] md:min-w-0 snap-center">
+                            <div class="mb-10 text-telematics-black">
+                                <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="3">
+                                    <path d="M20 6L9 17l-5-5" />
+                                </svg>
+                            </div>
+                            <h4 class="font-black uppercase tracking-widest text-xs mb-4">PAQUETE ZAMEX FULL</h4>
+                            <div class="mb-8">
+                                <p class="text-4xl font-display font-black">$12,500</p>
+                                <p class="text-[9px] uppercase tracking-widest opacity-70 mt-1 font-bold">Instalación
+                                    Unificada</p>
+                            </div>
+                            <div class="mt-auto pt-6 border-t border-black/10">
+                                <p class="text-3xl font-display font-black">$1,200</p>
+                                <p class="text-[9px] uppercase tracking-widest opacity-70 font-bold">Renta Todo Incluido
+                                </p>
+                            </div>
+                            <a href="https://wa.me/523511045606?text=Hola%20ZAMEX%20Telematics%2C%20me%20interesa%20una%20cotizaci%C3%B3n%20para%20mi%20flota."
+                                class="mt-8 w-full py-4 bg-telematics-black text-white text-[10px] font-black uppercase tracking-widest text-center rounded block shadow-xl transition-all hover:brightness-125 hover:-translate-y-1">Contratar</a>
                         </div>
-                        <a href="https://wa.me/523511045606?text=Hola%20ZAMEX%20Telematics%2C%20me%20interesa%20una%20cotizaci%C3%B3n%20para%20mi%20flota."
-                            class="mt-8 w-full py-4 bg-telematics-black text-white text-[10px] font-black uppercase tracking-widest text-center rounded block shadow-xl transition-all hover:brightness-125 hover:-translate-y-1">Contratar</a>
                     </div>
                 </div>
             </div>
