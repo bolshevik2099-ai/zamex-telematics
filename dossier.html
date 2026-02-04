@@ -80,17 +80,52 @@
             margin-bottom: 24px;
         }
     </style>
+    <style>
+        /* New Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s cubic-bezier(0.5, 0, 0, 1);
+        }
+
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Enhanced Glass Card */
+        .glass-industrial {
+            background: rgba(10, 18, 33, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.4s ease;
+        }
+
+        .glass-industrial:hover {
+            border-color: rgba(0, 240, 255, 0.3);
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px -10px rgba(0, 240, 255, 0.15);
+        }
+    </style>
 </head>
 
 <body class="antialiased selection:bg-telematics-cyan selection:text-telematics-black pt-10">
 
-    <!-- TOP SECRET WARNING BANNER -->
-    <div
-        class="fixed top-0 left-0 w-full z-[100] bg-yellow-500 text-black text-[10px] md:text-xs font-black uppercase tracking-widest py-2 text-center border-b-2 border-red-600 shadow-[0_0_20px_rgba(234,179,8,0.5)]">
-        <span class="animate-pulse mr-2">⚠️</span>
-        Este modelo de negocio es Secreto y está reservado a zonas y clientes estratégicos. Su aplicación depende de
-        evaluación y análisis.
-        <span class="animate-pulse ml-2">⚠️</span>
+    <!-- Scroll Progress Bar -->
+    <div id="scroll-progress"
+        class="fixed top-0 left-0 h-1 bg-telematics-cyan z-[200] w-0 transition-all duration-100 ease-out shadow-[0_0_10px_#00F0FF]">
     </div>
 
     <!-- Header -->
@@ -336,13 +371,11 @@
             </section>
 
             <!-- Warnings/Footer -->
-            <footer
-                class="text-center border-t border-white/5 pt-12 pb-12 opacity-40 hover:opacity-100 transition-opacity">
-                <p class="text-[10px] text-telematics-gray uppercase tracking-[0.3em] font-bold mb-2">Confidencialidad
-                    Estricta</p>
+            <footer class="text-center border-t border-white/5 pt-12 pb-12 opacity-60">
+                <p class="text-[10px] text-telematics-gray uppercase tracking-[0.3em] font-bold mb-2">ZAMEX Telematics
+                </p>
                 <p class="text-[9px] text-gray-600 max-w-2xl mx-auto leading-relaxed uppercase">
-                    Este documento contiene propiedad intelectual y estratégica de ZAMEX. Su distribución no autorizada
-                    está prohibida.
+                    Estrategia de Dominio de Mercado © 2026
                 </p>
             </footer>
 
@@ -694,6 +727,38 @@
         </script>
 
     </main>
+
+    <script>
+        // Scroll Progress Bar
+        window.addEventListener('scroll', () => {
+            const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+            const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const scrollPercent = (scrollTop / scrollHeight) * 100;
+            document.getElementById('scroll-progress').style.width = scrollPercent + '%';
+        });
+
+        // Reveal Animation Observer
+        const revealElements = document.querySelectorAll('section, h1, h2, h3, p, .glass-industrial, table, .chart-container');
+
+        // Add reveal class to identified elements initially (script-based injection for cleanliness)
+        revealElements.forEach(el => el.classList.add('reveal'));
+
+        const revealObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                    // Optional: Stop observing once revealed
+                    // revealObserver.unobserve(entry.target); 
+                }
+            });
+        }, {
+            root: null,
+            threshold: 0.1,
+            rootMargin: "0px"
+        });
+
+        revealElements.forEach(el => revealObserver.observe(el));
+    </script>
 
     <script>
         const ctx = document.getElementById('financialChart').getContext('2d');
