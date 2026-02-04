@@ -82,7 +82,16 @@
     </style>
 </head>
 
-<body class="antialiased selection:bg-telematics-cyan selection:text-telematics-black">
+<body class="antialiased selection:bg-telematics-cyan selection:text-telematics-black pt-10">
+
+    <!-- TOP SECRET WARNING BANNER -->
+    <div
+        class="fixed top-0 left-0 w-full z-[100] bg-yellow-500 text-black text-[10px] md:text-xs font-black uppercase tracking-widest py-2 text-center border-b-2 border-red-600 shadow-[0_0_20px_rgba(234,179,8,0.5)]">
+        <span class="animate-pulse mr-2">⚠️</span>
+        Este modelo de negocio es Secreto y está reservado a zonas y clientes estratégicos. Su aplicación depende de
+        evaluación y análisis.
+        <span class="animate-pulse ml-2">⚠️</span>
+    </div>
 
     <!-- Header -->
     <header class="fixed top-0 w-full z-50 bg-telematics-black/90 backdrop-blur-md border-b border-white/5 px-6 py-4">
@@ -339,7 +348,6 @@
 
         </div>
 
-        <!-- STRATEGIC MARKET REPORT -->
         <section class="max-w-6xl mx-auto px-6 mt-32 mb-20">
             <div class="glass-industrial p-10 md:p-14 border border-telematics-cyan/20">
 
@@ -526,6 +534,164 @@
 
             </div>
         </section>
+
+        <!-- 50-UNIT CASE STUDY -->
+        <section class="max-w-6xl mx-auto px-6 mb-32">
+            <div class="glass-industrial p-10 md:p-14 border border-yellow-500/30 relative overflow-hidden">
+                <!-- Background Glow -->
+                <div
+                    class="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-yellow-500/10 to-transparent pointer-events-none">
+                </div>
+
+                <div class="relative z-10">
+                    <div class="flex flex-col md:flex-row gap-6 items-start justify-between mb-12">
+                        <div>
+                            <span
+                                class="inline-block px-3 py-1 bg-yellow-500/20 text-yellow-500 text-[10px] font-bold tracking-[0.3em] uppercase mb-4 border border-yellow-500/30">Ejemplo
+                                de Utilidad Rápida</span>
+                            <h2
+                                class="font-display text-3xl md:text-4xl font-black text-white uppercase tracking-tight mb-2">
+                                Caso Real: <span class="text-yellow-500">Flota 50 Unidades</span>
+                            </h2>
+                            <p class="text-white/60 text-lg font-mono uppercase">50 Tractos + 50 Cajas Refrigeradas</p>
+                        </div>
+                        <div class="text-right hidden md:block">
+                            <div class="text-yellow-500 font-black text-5xl tracking-tighter">$1.77M</div>
+                            <div class="text-[10px] uppercase tracking-widest text-white/50">Ahorro Neto Cliente (5
+                                Años)</div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+
+                        <!-- The Math -->
+                        <div class="space-y-8">
+
+                            <!-- Competitor -->
+                            <div class="p-6 bg-red-500/5 border-l-2 border-red-500">
+                                <h4 class="text-red-500 font-bold uppercase text-xs tracking-widest mb-4">La Sangría
+                                    (Competencia)</h4>
+                                <div class="flex justify-between items-end mb-2">
+                                    <span class="text-white/80 text-sm">Renta Mensual (100 SIMs)</span>
+                                    <span class="text-white font-mono font-bold">$40,000 MXN</span>
+                                </div>
+                                <div class="flex justify-between items-end">
+                                    <span class="text-white/80 text-sm">Costo a 5 Años</span>
+                                    <span class="text-red-500 font-mono font-black text-xl">$2,400,000 MXN</span>
+                                </div>
+                            </div>
+
+                            <!-- Zamex -->
+                            <div class="p-6 bg-telematics-cyan/5 border-l-2 border-telematics-cyan relative">
+                                <div
+                                    class="absolute -top-3 -right-3 bg-yellow-500 text-black font-black text-[10px] px-2 py-1 uppercase tracking-widest shadow-lg transform rotate-2">
+                                    Cash Flow Inmediato</div>
+
+                                <h4 class="text-telematics-cyan font-bold uppercase text-xs tracking-widest mb-4">La
+                                    Inyección (ZAMEX)</h4>
+
+                                <div class="flex justify-between items-end mb-4 border-b border-white/5 pb-4">
+                                    <span class="text-white font-bold text-sm">OpEx Mensual (50 SIMs Hub)</span>
+                                    <span class="text-telematics-cyan font-mono font-bold">$2,500 MXN</span>
+                                </div>
+
+                                <div class="flex justify-between items-end mb-2">
+                                    <span class="text-yellow-400 font-bold text-sm uppercase">Inversión (Venta Hard +
+                                        Licencia)</span>
+                                    <span class="text-yellow-400 font-mono font-black text-2xl">$480,000 MXN</span>
+                                </div>
+                                <p class="text-[10px] text-white/40 uppercase tracking-wider mb-4">*Utilidad directa
+                                    para nosotros HOY.</p>
+
+                                <div class="flex justify-between items-end">
+                                    <span class="text-white/80 text-sm">Costo Total a 5 Años (OpEx + Inv)</span>
+                                    <span class="text-white font-mono font-black text-xl">$630,000 MXN</span>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- The Chart -->
+                        <div class="bg-black/40 p-6 rounded-lg border border-white/5">
+                            <h4 class="text-center text-[10px] text-gray-500 uppercase tracking-widest mb-6 font-bold">
+                                Proyección Visual (La Divergencia)</h4>
+                            <div class="chart-container" style="height: 300px;">
+                                <canvas id="caseStudyChart"></canvas>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <script>
+            const ctxCase = document.getElementById('caseStudyChart').getContext('2d');
+            const monthsCase = Array.from({ length: 61 }, (_, i) => i); // 0 to 60
+
+            // Competitor: $40,000 * Month
+            const competitorCaseData = monthsCase.map(m => m * 40000);
+
+            // Zamex: $480,000 + ($2,500 * Month)
+            const zamexCaseData = monthsCase.map(m => 480000 + (m * 2500));
+
+            new Chart(ctxCase, {
+                type: 'line',
+                data: {
+                    labels: monthsCase,
+                    datasets: [
+                        {
+                            label: 'Competencia (Gasto Acumulado)',
+                            data: competitorCaseData,
+                            borderColor: '#EF4444',
+                            backgroundColor: 'rgba(239, 68, 68, 0.05)',
+                            borderWidth: 2,
+                            tension: 0,
+                            pointRadius: 0,
+                            fill: true
+                        },
+                        {
+                            label: 'ZAMEX (Gasto Acumulado)',
+                            data: zamexCaseData,
+                            borderColor: '#00F0FF',
+                            backgroundColor: 'rgba(0, 240, 255, 0.05)',
+                            borderWidth: 3,
+                            tension: 0.1,
+                            pointRadius: 0,
+                            pointHoverRadius: 4,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    scales: {
+                        x: {
+                            grid: { color: '#1a1d24', drawBorder: false },
+                            ticks: { callback: v => v % 12 === 0 ? 'Año ' + (v / 12) : '', font: { size: 9 }, color: '#4B5563' }
+                        },
+                        y: {
+                            grid: { color: '#1a1d24', drawBorder: false },
+                            ticks: { callback: v => '$' + (v / 1000) + 'k', font: { size: 9 }, color: '#4B5563' }
+                        }
+                    },
+                    plugins: {
+                        legend: { labels: { usePointStyle: true, boxWidth: 6, font: { size: 9 }, color: '#9CA3AF' } },
+                        tooltip: {
+                            backgroundColor: '#000',
+                            titleColor: '#fff',
+                            callbacks: {
+                                label: function (context) {
+                                    return context.dataset.label + ': ' + new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(context.parsed.y);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        </script>
 
     </main>
 
