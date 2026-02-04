@@ -95,29 +95,31 @@
     <!-- Navbar -->
     <nav class="fixed top-0 w-full z-50 bg-telematics-black/80 backdrop-blur-md border-b border-white/5 px-6 py-4">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <div class="flex flex-col leading-none hover:opacity-90 transition-opacity cursor-default">
-                <div class="flex items-center gap-2">
-                    <span class="font-display font-bold text-2xl tracking-tighter text-white uppercase">Zamex</span>
-                    <!-- Mobile Satellite -->
-                    <svg class="w-5 h-5 text-telematics-cyan md:hidden animate-pulse" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor" stroke-width="1.5">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M3 10h4v4H3zM17 10h4v4h-4zM12 8v8M7 12h10" />
-                        <circle cx="12" cy="12" r="2" />
-                    </svg>
-                </div>
-                <!-- Desktop Row -->
-                <div class="hidden md:flex items-center gap-2">
+            <div class="flex items-center gap-3">
+                <!-- Z Logo (Restored) -->
+                <div
+                    class="w-8 h-8 bg-telematics-cyan rounded-md flex items-center justify-center font-black text-telematics-black text-lg">
+                    Z</div>
+
+                <!-- Text Stack -->
+                <div class="flex flex-col justify-center leading-none">
+                    <span class="font-display font-bold text-xl tracking-tight text-white uppercase">Zamex</span>
                     <span
-                        class="text-[0.65rem] tracking-[0.4em] font-bold text-telematics-cyan uppercase pl-[2px]">Telematics</span>
-                    <!-- Desktop Satellite -->
-                    <svg class="w-3 h-3 text-telematics-cyan" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                        stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M4 10h4v4H4zM16 10h4v4h-4zM12 8v8M8 12h8" />
-                        <circle cx="12" cy="12" r="2.5" />
-                    </svg>
+                        class="text-[0.6rem] font-bold text-telematics-cyan uppercase tracking-[0.25em]">Telematics</span>
                 </div>
+
+                <!-- Satellite Icon -->
+                <svg class="w-6 h-6 text-telematics-cyan animate-pulse hover:rotate-12 transition-transform duration-700"
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <!-- Solar Panels -->
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M19 10h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2M5 10H3a2 2 0 0 0-2 2v0a2 2 0 0 0 2 2h2" />
+                    <!-- Body -->
+                    <rect x="7" y="6" width="10" height="12" rx="2" />
+                    <!-- Lens/Detail -->
+                    <circle cx="12" cy="12" r="3" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6V3m0 18v-3" />
+                </svg>
             </div>
             <div class="hidden md:flex gap-10 text-[11px] font-bold uppercase tracking-widest text-telematics-gray">
                 <a href="#soluciones" class="hover:text-telematics-cyan transition-colors">Soluciones</a>
