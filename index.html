@@ -88,9 +88,63 @@
             margin-bottom: 24px;
         }
     </style>
+    <style>
+        /* Premium Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s cubic-bezier(0.5, 0, 0, 1);
+            will-change: opacity, transform;
+        }
+
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Enhanced Interactive Elements */
+        .glass-industrial {
+            background: rgba(10, 18, 33, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 240, 255, 0.1);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-industrial:hover {
+            border-color: rgba(0, 240, 255, 0.4);
+            transform: translateY(-8px) scale(1.01);
+            box-shadow: 0 20px 40px -10px rgba(0, 240, 255, 0.2);
+            z-index: 10;
+        }
+
+        /* Mobile specific adjustments */
+        @media (max-width: 768px) {
+            .glass-industrial:hover {
+                transform: none;
+                /* Disable heavy hover effects on touch */
+            }
+        }
+    </style>
 </head>
 
 <body class="antialiased selection:bg-telematics-cyan selection:text-telematics-black">
+
+    <!-- Scroll Progress Bar -->
+    <div id="scroll-progress"
+        class="fixed top-0 left-0 h-1 bg-telematics-cyan z-[200] w-0 transition-all duration-100 ease-out shadow-[0_0_10px_#00F0FF]">
+    </div>
 
     <!-- Navbar -->
     <nav class="fixed top-0 w-full z-50 bg-telematics-black/80 backdrop-blur-md border-b border-white/5 px-6 py-4">
@@ -494,7 +548,7 @@
                                 <div
                                     class="absolute inset-0 bg-white/40 blur-3xl rounded-full scale-75 group-hover:scale-90 transition-all duration-700">
                                 </div>
-                                <img src="assets/servicios_plus_new.jpg" alt="Servicios Plus Infographic"
+                                <img src="assets/servicios_plus_v2.jpg" alt="Servicios Plus Infographic"
                                     class="relative w-full drop-shadow-2xl transform group-hover:-translate-y-2 group-hover:scale-105 transition-all duration-500 rounded-xl mix-blend-multiply">
                             </div>
                         </div>
@@ -524,6 +578,40 @@
             </div>
         </section>
     </main>
+
+    <script>
+        // Scroll Progress
+        window.addEventListener('scroll', () => {
+            const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+            const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const scrollPercent = (scrollTop / scrollHeight) * 100;
+            const progressBar = document.getElementById('scroll-progress');
+            if (progressBar) progressBar.style.width = scrollPercent + '%';
+        });
+
+        // Reveal Animations
+        document.addEventListener('DOMContentLoaded', () => {
+            const revealElements = document.querySelectorAll('section, h1, h2, h3, .glass-industrial, .section-tag');
+
+            // Initial setup
+            revealElements.forEach(el => el.classList.add('reveal'));
+
+            const revealObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('active');
+                        revealObserver.unobserve(entry.target); // Reveal once
+                    }
+                });
+            }, {
+                root: null,
+                threshold: 0.1,
+                rootMargin: "0px"
+            });
+
+            revealElements.forEach(el => revealObserver.observe(el));
+        });
+    </script>
 
     <footer class="py-20 bg-telematics-black border-t border-white/5">
         <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-12">
