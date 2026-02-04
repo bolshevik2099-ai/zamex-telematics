@@ -684,14 +684,15 @@
                             fill: true
                         },
                         {
-                            label: 'ZAMEX (Gasto Acumulado)',
+                            label: 'ZAMEX (Propiedad / Ahorro)',
                             data: zamexCaseData,
-                            borderColor: '#00F0FF',
-                            backgroundColor: 'rgba(0, 240, 255, 0.05)',
+                            borderColor: '#10B981', /* Green */
+                            backgroundColor: 'rgba(16, 185, 129, 0.05)',
                             borderWidth: 3,
                             tension: 0.1,
                             pointRadius: 0,
                             pointHoverRadius: 4,
+                            pointHoverBackgroundColor: '#10B981',
                             fill: true
                         }
                     ]
@@ -707,7 +708,13 @@
                         },
                         y: {
                             grid: { color: '#1a1d24', drawBorder: false },
-                            ticks: { callback: v => '$' + (v / 1000) + 'k', font: { size: 9 }, color: '#4B5563' }
+                            ticks: {
+                                callback: function (value) {
+                                    return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(value);
+                                },
+                                font: { size: 9 },
+                                color: '#4B5563'
+                            }
                         }
                     },
                     plugins: {
