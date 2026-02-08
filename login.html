@@ -115,9 +115,8 @@
             <form id="loginForm" class="space-y-5">
                 <div>
                     <label for="email"
-                        class="block text-xs font-bold text-telematics-cyan uppercase tracking-wider mb-2">Usuario /
-                        Email</label>
-                    <input type="email" id="email" required placeholder="admin@zamexia.com"
+                        class="block text-xs font-bold text-telematics-cyan uppercase tracking-wider mb-2">Usuario</label>
+                    <input type="text" id="email" required placeholder="super_admin"
                         class="w-full p-4 rounded bg-telematics-black/50 border border-white/10 text-white focus:border-telematics-cyan focus:ring-1 focus:ring-telematics-cyan outline-none transition-all placeholder:text-gray-600 font-mono text-sm">
                 </div>
 
@@ -172,8 +171,13 @@
             submitBtn.classList.add('opacity-70', 'cursor-not-allowed');
             errorMessage.classList.add('hidden');
 
-            const email = emailInput.value;
+            let email = emailInput.value.trim();
             const password = passwordInput.value;
+
+            // Logic to support logging in with just "super_admin"
+            if (!email.includes('@')) {
+                email = email + '@zamexia.com';
+            }
 
             try {
                 const { data, error } = await supabase.auth.signInWithPassword({
