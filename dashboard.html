@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración | Zamex Telematics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;900&family=Space+Grotesk:wght@300;500;700&display=swap"
+        rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        display: ['Space Grotesk', 'sans-serif'],
+                    },
+                    colors: {
+                        telematics: {
+                            black: '#05070A',
+                            cyan: '#00F0FF',
+                            navy: '#0A1221',
+                            gray: '#9CA3AF',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #05070A;
+            color: white;
+        }
+
+        .glass-panel {
+            background: rgba(10, 18, 33, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .tab-active {
+            color: #00F0FF;
+            border-bottom: 2px solid #00F0FF;
+        }
+
+        .btn-cyan {
+            background: #00F0FF;
+            color: #05070A;
+            font-weight: 800;
+            transition: all 0.3s ease;
+        }
+
+        .btn-cyan:hover {
+            background: white;
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .input-dark {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .input-dark:focus {
+            border-color: #00F0FF;
+            background: rgba(255, 255, 255, 0.06);
+        }
+    </style>
+</head>
+
+<body class="antialiased min-h-screen flex flex-col hidden" id="mainContent">
+    <!-- Navbar -->
+    <nav class="border-b border-white/5 bg-telematics-black/80 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="relative w-8 h-8 flex items-center justify-center">
+                    <div class="absolute inset-0 bg-telematics-cyan blur-md opacity-20"></div>
+                    <svg class="w-full h-full text-telematics-cyan relative z-10" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                    </svg>
+                </div>
+                <span class="font-display font-bold text-lg tracking-tight uppercase italic">Panel Admin</span>
+            </div>
+            <div class="flex items-center gap-6">
+                <span id="userBadge"
+                    class="text-xs font-mono text-telematics-gray uppercase tracking-widest hidden md:block"></span>
+                <button id="logoutBtn"
+                    class="text-xs font-bold text-red-400 hover:text-red-300 uppercase tracking-widest transition-colors">Cerrar
+                    Sesión</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-1 max-w-7xl mx-auto w-full p-6 md:p-10">
+        <div class="mb-10">
+            <h1 class="font-display text-4xl font-bold mb-2">Gestión de Datos</h1>
+            <p class="text-telematics-gray italic">Control centralizado de clientes, flota y suscripciones.</p>
+        </div>
+
+        <!-- Tabs Navigation -->
+        <div class="flex gap-8 mb-8 border-b border-white/10 overflow-x-auto no-scrollbar">
+            <button onclick="switchTab('clientes')" id="tab-clientes"
+                class="pb-4 font-display font-bold uppercase tracking-widest text-sm transition-all tab-active whitespace-nowrap">Clientes</button>
+            <button onclick="switchTab('dispositivos')" id="tab-dispositivos"
+                class="pb-4 font-display font-bold uppercase tracking-widest text-sm transition-all text-telematics-gray hover:text-white whitespace-nowrap">Dispositivos</button>
+            <button onclick="switchTab('suscripciones')" id="tab-suscripciones"
+                class="pb-4 font-display font-bold uppercase tracking-widest text-sm transition-all text-telematics-gray hover:text-white whitespace-nowrap">Suscripciones</button>
+        </div>
+
+        <!-- Action Bar -->
+        <div class="flex flex-col md:flex-row gap-4 mb-6 justify-between items-start md:items-center">
+            <div class="relative w-full md:w-96">
+                <input type="text" id="searchInput" placeholder="Buscar registros..."
+                    class="w-full p-3 pl-10 rounded-lg input-dark text-sm">
+                <svg class="absolute left-3 top-3.5 w-4 h-4 text-telematics-gray" fill="none" stroke="currentColor"
+                    viewBox="0 0 24 24">
+                    <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+            </div>
+            <button onclick="openModal()" id="addBtn"
+                class="w-full md:w-auto px-6 py-3 rounded-lg btn-cyan text-sm flex items-center justify-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 4v16m8-8H4" />
+                </svg>
+                Añadir <span id="addBtnLabel">Cliente</span>
+            </button>
+        </div>
+
+        <!-- Data Table Container -->
+        <div class="glass-panel rounded-2xl overflow-hidden border border-white/5">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm">
+                    <thead
+                        class="bg-white/5 uppercase text-[10px] font-bold tracking-widest text-telematics-gray border-b border-white/10">
+                        <tr id="tableHeader">
+                            <!-- Dynamic -->
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="divide-y divide-white/5">
+                        <!-- Dynamic -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="loadingIndicator"
+                class="p-20 flex flex-col items-center justify-center gap-4 text-telematics-gray">
+                <div class="w-8 h-8 border-2 border-telematics-cyan border-t-transparent animate-spin rounded-full">
+                </div>
+                <span class="text-xs font-mono uppercase tracking-widest">Cargando datos...</span>
+            </div>
+            <div id="emptyState"
+                class="hidden p-20 flex flex-col items-center justify-center gap-3 text-telematics-gray">
+                <svg class="w-12 h-12 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                        d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                </svg>
+                <span class="text-xs font-mono uppercase tracking-widest">Sin registros encontrados</span>
+            </div>
+        </div>
+    </main>
+
+    <!-- CRUD Modal -->
+    <div id="crudModal"
+        class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 bg-telematics-black/90 backdrop-blur-sm">
+        <div class="w-full max-w-xl glass-panel rounded-2xl overflow-hidden shadow-2xl">
+            <div class="p-6 border-b border-white/5 flex items-center justify-between bg-white/5">
+                <h3 id="modalTitle" class="font-display font-bold uppercase tracking-widest text-telematics-cyan">Nuevo
+                    Registro</h3>
+                <button onclick="closeModal()" class="text-telematics-gray hover:text-white transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <form id="crudForm" class="p-8 space-y-6">
+                <!-- Dynamic form fields -->
+                <div id="formFields" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
+
+                <div class="pt-6 flex gap-4">
+                    <button type="button" onclick="closeModal()"
+                        class="flex-1 py-3 px-6 rounded-lg text-sm font-bold border border-white/10 text-telematics-gray hover:text-white hover:bg-white/5 transition-all uppercase tracking-widest">Cancelar</button>
+                    <button type="submit" id="saveBtn"
+                        class="flex-[2] py-3 px-6 rounded-lg btn-cyan text-sm uppercase tracking-widest">Guardar
+                        Registro</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div id="toast"
+        class="fixed bottom-10 right-10 z-[200] transform translate-y-20 opacity-0 transition-all duration-500">
+        <div
+            class="bg-telematics-navy border border-telematics-cyan/30 p-4 rounded-xl shadow-2xl flex items-center gap-4 min-w-[300px]">
+            <div class="w-8 h-8 rounded-full bg-telematics-cyan/10 flex items-center justify-center">
+                <svg class="w-4 h-4 text-telematics-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+            <div>
+                <p id="toastMsg" class="text-sm font-bold text-white"></p>
+                <p class="text-[10px] text-telematics-gray uppercase tracking-widest">Acción Completada</p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // --- CONFIGURATION ---
+        const SUPABASE_URL = 'https://gamulzbqajseqyglcslf.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_7sj6RKllmfsY-TAWEX0akA_0KltNVJe';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let currentTab = 'clientes';
+        let currentEditingId = null;
+
+        // --- SESSION SECURITY ---
+        async function checkSession() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) {
+                window.location.href = 'login.html';
+                return;
+            }
+            // Optional: Check role
+            const role = session.user.app_metadata?.role;
+            if (role !== 'super_admin') {
+                console.warn('Acceso restringido a Super Admin');
+            }
+            document.getElementById('userBadge').innerText = session.user.email;
+            document.getElementById('userBadge').classList.remove('hidden');
+            document.getElementById('mainContent').classList.remove('hidden');
+            loadData();
+        }
+
+        // --- DATA UI DEFINITIONS ---
+        const schemas = {
+            clientes: {
+                label: 'Cliente',
+                table: 'clientes',
+                columns: [
+                    { key: 'nombre_empresa', label: 'Empresa', type: 'text', required: true },
+                    { key: 'telefono', label: 'Teléfono', type: 'text' },
+                    { key: 'tipo_servicio', label: 'Servicio', type: 'text' },
+                ]
+            },
+            dispositivos: {
+                label: 'Dispositivo',
+                table: 'dispositivos',
+                columns: [
+                    { key: 'imei', label: 'IMEI', type: 'text', required: true, pk: true },
+                    { key: 'alias', label: 'Alias', type: 'text' },
+                    { key: 'placas', label: 'Placas', type: 'text' },
+                ]
+            },
+            suscripciones: {
+                label: 'Suscripción',
+                table: 'suscripciones',
+                columns: [
+                    { key: 'id', label: 'ID', type: 'text', readonly: true, pk: true },
+                    { key: 'estado', label: 'Estado', type: 'select', options: ['ACTIVO', 'MOROSO', 'CANCELADO'] },
+                    { key: 'proximo_pago', label: 'Próximo Pago', type: 'date' },
+                ]
+            }
+        };
+
+        // --- CORE FUNCTIONS ---
+        async function loadData() {
+            showLoading(true);
+            const schema = schemas[currentTab];
+
+            let { data, error } = await supabaseClient
+                .from(schema.table)
+                .select('*')
+                .order(schema.columns[0].key);
+
+            if (data) renderTable(data, schema);
+            if (error) console.error(error);
+            showLoading(false);
+        }
+
+        function renderTable(data, schema) {
+            const header = document.getElementById('tableHeader');
+            const body = document.getElementById('tableBody');
+
+            header.innerHTML = schema.columns.map(col => `<th class="px-6 py-4">${col.label}</th>`).join('') + '<th class="px-6 py-4 text-right">Acciones</th>';
+
+            if (data.length === 0) {
+                document.getElementById('emptyState').classList.remove('hidden');
+                body.innerHTML = '';
+                return;
+            }
+
+            document.getElementById('emptyState').classList.add('hidden');
+            body.innerHTML = data.map(item => `
+                <tr class="hover:bg-white/[0.02] transition-colors group">
+                    ${schema.columns.map(col => `<td class="px-6 py-4 text-telematics-gray font-mono text-xs">${item[col.key] || '-'}</td>`).join('')}
+                    <td class="px-6 py-4 text-right">
+                        <div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="editItem('${item[schema.columns.find(c => c.pk)?.key || 'id']}')" class="p-2 rounded bg-white/5 hover:bg-telematics-cyan/20 text-telematics-cyan transition-all">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                            </button>
+                            <button onclick="deleteItem('${item[schema.columns.find(c => c.pk)?.key || 'id']}')" class="p-2 rounded bg-white/5 hover:bg-red-500/20 text-red-400 transition-all">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        window.switchTab = (tab) => {
+            currentTab = tab;
+            document.querySelectorAll('[id^="tab-"]').forEach(el => el.classList.remove('tab-active', 'text-white'));
+            document.querySelectorAll('[id^="tab-"]').forEach(el => el.classList.add('text-telematics-gray'));
+            document.getElementById(`tab-${tab}`).classList.add('tab-active', 'text-white');
+            document.getElementById('addBtnLabel').innerText = schemas[tab].label;
+            loadData();
+        };
+
+        window.openModal = () => {
+            currentEditingId = null;
+            document.getElementById('modalTitle').innerText = 'Nuevo ' + schemas[currentTab].label;
+            renderFormFields();
+            document.getElementById('crudModal').classList.remove('hidden');
+        };
+
+        window.closeModal = () => {
+            document.getElementById('crudModal').classList.add('hidden');
+            document.getElementById('crudForm').reset();
+        };
+
+        function renderFormFields(existingData = null) {
+            const container = document.getElementById('formFields');
+            const schema = schemas[currentTab];
+
+            container.innerHTML = schema.columns.map(col => {
+                if (col.readonly && !existingData) return '';
+
+                let inputHtml = '';
+                if (col.type === 'select') {
+                    inputHtml = `<select name="${col.key}" class="w-full p-3 rounded-lg input-dark text-sm">
+                        ${col.options.map(opt => `<option value="${opt}" ${existingData?.[col.key] === opt ? 'selected' : ''}>${opt}</option>`).join('')}
+                    </select>`;
+                } else {
+                    inputHtml = `<input type="${col.type}" name="${col.key}" value="${existingData?.[col.key] || ''}" 
+                        ${col.readonly ? 'readonly' : ''} ${col.required ? 'required' : ''} 
+                        placeholder="${col.label}" class="w-full p-3 rounded-lg input-dark text-sm ${col.readonly ? 'opacity-50' : ''}">`;
+                }
+
+                return `<div>
+                    <label class="block text-[10px] font-bold text-telematics-gray uppercase tracking-widest mb-1.5 ml-1">${col.label} ${col.required ? '*' : '(Opcional)'}</label>
+                    ${inputHtml}
+                </div>`;
+            }).join('');
+        }
+
+        window.editItem = async (id) => {
+            currentEditingId = id;
+            const schema = schemas[currentTab];
+            const pkField = schema.columns.find(c => c.pk)?.key || 'id';
+
+            const { data, error } = await supabaseClient.from(schema.table).select('*').eq(pkField, id).single();
+            if (data) {
+                document.getElementById('modalTitle').innerText = 'Editar ' + schema.label;
+                renderFormFields(data);
+                document.getElementById('crudModal').classList.remove('hidden');
+            }
+        };
+
+        window.deleteItem = async (id) => {
+            if (!confirm('¿Estás seguro de eliminar este registro?')) return;
+            const schema = schemas[currentTab];
+            const pkField = schema.columns.find(c => c.pk)?.key || 'id';
+
+            const { error } = await supabaseClient.from(schema.table).delete().eq(pkField, id);
+            if (!error) {
+                showToast('Registro eliminado');
+                loadData();
+            } else {
+                alert('Error al eliminar: ' + error.message);
+            }
+        };
+
+        document.getElementById('crudForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            const schema = schemas[currentTab];
+
+            let error;
+            if (currentEditingId) {
+                const pkField = schema.columns.find(c => c.pk)?.key || 'id';
+                ({ error } = await supabaseClient.from(schema.table).update(data).eq(pkField, currentEditingId));
+            } else {
+                ({ error } = await supabaseClient.from(schema.table).insert([data]));
+            }
+
+            if (!error) {
+                showToast('Registro guardado');
+                closeModal();
+                loadData();
+            } else {
+                alert('Error al guardar: ' + error.message);
+            }
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            await supabaseClient.auth.signOut();
+            window.location.href = 'login.html';
+        });
+
+        function showLoading(show) {
+            document.getElementById('loadingIndicator').classList.toggle('hidden', !show);
+            document.getElementById('tableBody').style.opacity = show ? '0.3' : '1';
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').innerText = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // Init
+        checkSession();
+    </script>
+</body>
+
+</html>

@@ -190,11 +190,9 @@
 
                 console.log('Login exitoso:', data);
                 submitBtn.innerHTML = 'Acceso Permitido';
-                submitBtn.classList.replace('bg-telematics-cyan', 'bg-green-500');
-
                 setTimeout(() => {
-                    alert('Login Exitoso. Identificado como: ' + (data.user.email));
-                }, 500);
+                    window.location.href = 'dashboard.html';
+                }, 1000);
 
             } catch (err) {
                 console.error('Error detallado de login:', err);
