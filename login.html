@@ -152,9 +152,10 @@
     <script type="module">
         // Initialize Supabase
         const SUPABASE_URL = 'https://gamulzbqajseqyglcslf.supabase.co';
-        // Using ANON KEY for client-sideauth
-        const SUPABASE_KEY = 'sb_publishable_7sj6RKllmfsY-TAWEX0akA_0KltNVJe'; // Provided by user
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const SUPABASE_KEY = 'sb_publishable_7sj6RKllmfsY-TAWEX0akA_0KltNVJe';
+
+        // Use a different name to avoid collision with the global 'supabase' object from the CDN
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         const loginForm = document.getElementById('loginForm');
         const emailInput = document.getElementById('email');
@@ -165,7 +166,6 @@
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            // UI Loading State
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<span class="animate-pulse">Verificando...</span>';
             submitBtn.classList.add('opacity-70', 'cursor-not-allowed');
@@ -174,37 +174,33 @@
             let email = emailInput.value.trim();
             const password = passwordInput.value;
 
-            // Logic to support logging in with just "super_admin"
             if (!email.includes('@')) {
                 email = email + '@zamexia.com';
             }
 
+            console.log('Intentando login para:', email);
+
             try {
-                const { data, error } = await supabase.auth.signInWithPassword({
+                const { data, error } = await supabaseClient.auth.signInWithPassword({
                     email: email,
                     password: password
                 });
 
                 if (error) throw error;
 
-                // Success
+                console.log('Login exitoso:', data);
                 submitBtn.innerHTML = 'Acceso Permitido';
                 submitBtn.classList.replace('bg-telematics-cyan', 'bg-green-500');
 
-                // Redirect logic (simulated for now, or redirect to dashboard if exists)
                 setTimeout(() => {
-                    // Check if super_admin
-                    // For now just redirect to a placeholder or stay
-                    alert('Login Exitoso. Rol: ' + (data.user.app_metadata.role || 'user'));
-                    // window.location.href = '/dashboard.html'; // Uncomment when dashboard exists
-                }, 1000);
+                    alert('Login Exitoso. Identificado como: ' + (data.user.email));
+                }, 500);
 
             } catch (err) {
-                console.error('Login Error:', err);
-                errorMessage.textContent = 'Credenciales inválidas o error de conexión.';
+                console.error('Error detallado de login:', err);
+                errorMessage.textContent = err.message || 'Credenciales inválidas o error de conexión.';
                 errorMessage.classList.remove('hidden');
 
-                // Reset styling
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = 'Iniciar Sesión';
                 submitBtn.classList.remove('opacity-70', 'cursor-not-allowed');
