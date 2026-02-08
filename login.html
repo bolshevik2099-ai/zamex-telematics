@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acceso Seguro | Zamex Telematics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;900&family=Space+Grotesk:wght@300;500;700&display=swap"
+        rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        display: ['Space Grotesk', 'sans-serif'],
+                    },
+                    colors: {
+                        telematics: {
+                            black: '#05070A',
+                            cyan: '#00F0FF',
+                            navy: '#0A1221',
+                            gray: '#9CA3AF',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #05070A;
+            color: white;
+            overflow-x: hidden;
+        }
+
+        .glass-panel {
+            background: rgba(10, 18, 33, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(0, 240, 255, 0.1);
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .input-field {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .input-field:focus {
+            border-color: #00F0FF;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            outline: none;
+        }
+
+        .bg-grid {
+            background-size: 40px 40px;
+            background-image: linear-gradient(to right, rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+        }
+    </style>
+</head>
+
+<body
+    class="antialiased selection:bg-telematics-cyan selection:text-telematics-black min-h-screen flex flex-col relative">
+
+    <!-- Background Elements -->
+    <div class="fixed inset-0 bg-grid z-0 pointer-events-none"></div>
+    <div
+        class="fixed top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_0%,rgba(0,240,255,0.05),transparent_50%)] z-0 pointer-events-none">
+    </div>
+
+    <!-- Content -->
+    <div class="relative z-10 flex-1 flex flex-col items-center justify-center p-6">
+
+        <!-- Logo -->
+        <a href="index.html" class="mb-12 group">
+            <div class="flex items-center gap-3">
+                <div class="relative">
+                    <div
+                        class="absolute inset-0 bg-telematics-cyan blur-md opacity-20 group-hover:opacity-40 transition-opacity">
+                    </div>
+                    <svg class="w-10 h-10 text-telematics-cyan relative z-10" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                    </svg>
+                </div>
+                <div class="flex flex-col">
+                    <span
+                        class="font-display font-bold text-2xl tracking-tight text-white uppercase leading-none">Zamex</span>
+                    <span
+                        class="font-mono text-[10px] text-telematics-cyan tracking-[0.2em] uppercase">Telematics</span>
+                </div>
+            </div>
+        </a>
+
+        <!-- Login Card -->
+        <div class="w-full max-w-md glass-panel p-8 md:p-10 rounded-2xl relative overflow-hidden">
+            <!-- Decorative line -->
+            <div
+                class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-telematics-cyan to-transparent opacity-50">
+            </div>
+
+            <h1 class="font-display text-3xl font-bold text-white mb-2 text-center">Bienvenido</h1>
+            <p class="text-telematics-gray text-center mb-8 text-sm">Ingresa tus credenciales para acceder al panel.</p>
+
+            <form id="loginForm" class="space-y-5">
+                <div>
+                    <label for="email"
+                        class="block text-xs font-bold text-telematics-cyan uppercase tracking-wider mb-2">Usuario /
+                        Email</label>
+                    <input type="email" id="email" required placeholder="admin@zamexia.com"
+                        class="w-full p-4 rounded bg-telematics-black/50 border border-white/10 text-white focus:border-telematics-cyan focus:ring-1 focus:ring-telematics-cyan outline-none transition-all placeholder:text-gray-600 font-mono text-sm">
+                </div>
+
+                <div>
+                    <label for="password"
+                        class="block text-xs font-bold text-telematics-cyan uppercase tracking-wider mb-2">Contraseña</label>
+                    <input type="password" id="password" required placeholder="••••••••"
+                        class="w-full p-4 rounded bg-telematics-black/50 border border-white/10 text-white focus:border-telematics-cyan focus:ring-1 focus:ring-telematics-cyan outline-none transition-all placeholder:text-gray-600 font-mono text-sm">
+                </div>
+
+                <div id="errorMessage"
+                    class="hidden p-3 rounded bg-red-500/10 border border-red-500/20 text-red-400 text-xs text-center font-bold">
+                </div>
+
+                <button type="submit" id="submitBtn"
+                    class="w-full py-4 bg-telematics-cyan text-telematics-black font-black uppercase tracking-widest rounded shadow-[0_0_20px_rgba(0,240,255,0.3)] hover:shadow-[0_0_30px_rgba(0,240,255,0.5)] hover:bg-white transition-all transform hover:-translate-y-1 mt-4">
+                    Iniciar Sesión
+                </button>
+            </form>
+
+            <div class="mt-8 text-center">
+                <a href="#" class="text-xs text-telematics-gray hover:text-white transition-colors">¿Olvidaste tu
+                    contraseña?</a>
+            </div>
+        </div>
+
+        <div class="mt-8 text-center text-[10px] text-telematics-gray/30 font-mono">
+            SECURE ACCESS ENCRYPTED BY SUPABASE<br>
+            ZAMEX TELEMATICS © 2026
+        </div>
+    </div>
+
+    <script type="module">
+        // Initialize Supabase
+        const SUPABASE_URL = 'https://gamulzbqajseqyglcslf.supabase.co';
+        // Using ANON KEY for client-sideauth
+        const SUPABASE_KEY = 'sb_publishable_7sj6RKllmfsY-TAWEX0akA_0KltNVJe'; // Provided by user
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        const loginForm = document.getElementById('loginForm');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const submitBtn = document.getElementById('submitBtn');
+        const errorMessage = document.getElementById('errorMessage');
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // UI Loading State
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="animate-pulse">Verificando...</span>';
+            submitBtn.classList.add('opacity-70', 'cursor-not-allowed');
+            errorMessage.classList.add('hidden');
+
+            const email = emailInput.value;
+            const password = passwordInput.value;
+
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+
+                if (error) throw error;
+
+                // Success
+                submitBtn.innerHTML = 'Acceso Permitido';
+                submitBtn.classList.replace('bg-telematics-cyan', 'bg-green-500');
+
+                // Redirect logic (simulated for now, or redirect to dashboard if exists)
+                setTimeout(() => {
+                    // Check if super_admin
+                    // For now just redirect to a placeholder or stay
+                    alert('Login Exitoso. Rol: ' + (data.user.app_metadata.role || 'user'));
+                    // window.location.href = '/dashboard.html'; // Uncomment when dashboard exists
+                }, 1000);
+
+            } catch (err) {
+                console.error('Login Error:', err);
+                errorMessage.textContent = 'Credenciales inválidas o error de conexión.';
+                errorMessage.classList.remove('hidden');
+
+                // Reset styling
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Iniciar Sesión';
+                submitBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+            }
+        });
+    </script>
+</body>
+
+</html>
