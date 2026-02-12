@@ -352,10 +352,13 @@
             if (currentTab === 'dispositivos') {
                 const clientOptions = await fetchClientsForDropdown();
                 const clientCol = schemas.dispositivos.columns.find(c => c.key === 'cliente_id');
-                if (clientCol) clientCol.options = clientOptions;
+                if (clientCol) {
+                    clientCol.options = clientOptions;
+                    console.log('Loaded clients for dropdown:', clientOptions.length);
+                }
             }
 
-            renderFormFields();
+            await renderFormFields();
             document.getElementById('crudModal').classList.remove('hidden');
         };
 
@@ -364,27 +367,38 @@
             document.getElementById('crudForm').reset();
         };
 
-        function renderFormFields(existingData = null) {
+        async function renderFormFields(existingData = null) {
             const container = document.getElementById('formFields');
             const schema = schemas[currentTab];
 
-            container.innerHTML = schema.columns.map(col => {
+            // Generate HTML for each column
+            const fieldsHTML = await Promise.all(schema.columns.map(async (col) => {
                 if (col.readonly && !existingData) return '';
 
                 let inputHtml = '';
                 if (col.type === 'select') {
-                    // Check if options are objects or strings
-                    const isObject = col.options.length > 0 && typeof col.options[0] === 'object';
+                    // Ensure options are loaded
+                    const options = col.options || [];
 
-                    inputHtml = `<select name="${col.key}" class="w-full p-3 rounded-lg input-dark text-sm">
-                        <option value="">Seleccionar...</option>
-                        ${col.options.map(opt => {
-                        const val = isObject ? opt.value : opt;
-                        const lab = isObject ? opt.label : opt;
-                        const isSelected = existingData?.[col.key] === val ? 'selected' : '';
-                        return `<option value="${val}" ${isSelected}>${lab}</option>`;
-                    }).join('')}
-                    </select>`;
+                    if (options.length === 0) {
+                        // If no options, show a warning
+                        inputHtml = `<select name="${col.key}" class="w-full p-3 rounded-lg input-dark text-sm" disabled>
+                            <option value="">Sin opciones disponibles</option>
+                        </select>`;
+                    } else {
+                        // Check if options are objects or strings
+                        const isObject = options.length > 0 && typeof options[0] === 'object';
+
+                        inputHtml = `<select name="${col.key}" class="w-full p-3 rounded-lg input-dark text-sm">
+                            <option value="">Seleccionar...</option>
+                            ${options.map(opt => {
+                            const val = isObject ? opt.value : opt;
+                            const lab = isObject ? opt.label : opt;
+                            const isSelected = existingData?.[col.key] === val ? 'selected' : '';
+                            return `<option value="${val}" ${isSelected}>${lab}</option>`;
+                        }).join('')}
+                        </select>`;
+                    }
                 } else {
                     inputHtml = `<input type="${col.type}" name="${col.key}" value="${existingData?.[col.key] || ''}" 
                         ${col.readonly ? 'readonly' : ''} ${col.required ? 'required' : ''} 
@@ -395,7 +409,9 @@
                     <label class="block text-[10px] font-bold text-telematics-gray uppercase tracking-widest mb-1.5 ml-1">${col.label} ${col.required ? '*' : '(Opcional)'}</label>
                     ${inputHtml}
                 </div>`;
-            }).join('');
+            }));
+
+            container.innerHTML = fieldsHTML.join('');
         }
 
         window.editItem = async (id) => {
@@ -407,13 +423,16 @@
             if (currentTab === 'dispositivos') {
                 const clientOptions = await fetchClientsForDropdown();
                 const clientCol = schemas.dispositivos.columns.find(c => c.key === 'cliente_id');
-                if (clientCol) clientCol.options = clientOptions;
+                if (clientCol) {
+                    clientCol.options = clientOptions;
+                    console.log('Loaded clients for editing dropdown:', clientOptions.length);
+                }
             }
 
             const { data, error } = await supabaseClient.from(schema.table).select('*').eq(pkField, id).single();
             if (data) {
                 document.getElementById('modalTitle').innerText = 'Editar ' + schema.label;
-                renderFormFields(data);
+                await renderFormFields(data);
                 document.getElementById('crudModal').classList.remove('hidden');
             }
         };
