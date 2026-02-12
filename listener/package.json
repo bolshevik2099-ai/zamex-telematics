@@ -1,0 +1,20 @@
+{
+  "name": "zamex-teltonika-listener",
+  "version": "1.0.0",
+  "description": "TCP listener for Teltonika GPS devices with multi-tenant Supabase routing",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "keywords": ["teltonika", "gps", "tcp", "listener", "codec8"],
+  "author": "Zamex Telematics",
+  "license": "MIT",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "dotenv": "^16.3.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

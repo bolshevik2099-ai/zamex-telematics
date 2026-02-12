@@ -261,6 +261,7 @@
                 columns: [
                     { key: 'imei', label: 'IMEI', type: 'text', required: true, pk: true },
                     { key: 'alias', label: 'Alias', type: 'text' },
+                    { key: 'cliente_id', label: 'Asignar a Cliente', type: 'select', options: [] }, // Populated dynamically
                     { key: 'placas', label: 'Placas', type: 'text' },
                 ]
             },
@@ -329,9 +330,31 @@
             loadData();
         };
 
-        window.openModal = () => {
+        // Helper to fetch clients for dropdown
+        async function fetchClientsForDropdown() {
+            const { data, error } = await supabaseClient
+                .from('clientes')
+                .select('id, nombre_empresa')
+                .order('nombre_empresa');
+
+            if (error) {
+                console.error('Error fetching clients:', error);
+                return [];
+            }
+            return data.map(c => ({ value: c.id, label: c.nombre_empresa }));
+        }
+
+        window.openModal = async () => {
             currentEditingId = null;
             document.getElementById('modalTitle').innerText = 'Nuevo ' + schemas[currentTab].label;
+
+            // Dynamic load for dropdowns
+            if (currentTab === 'dispositivos') {
+                const clientOptions = await fetchClientsForDropdown();
+                const clientCol = schemas.dispositivos.columns.find(c => c.key === 'cliente_id');
+                if (clientCol) clientCol.options = clientOptions;
+            }
+
             renderFormFields();
             document.getElementById('crudModal').classList.remove('hidden');
         };
@@ -350,8 +373,17 @@
 
                 let inputHtml = '';
                 if (col.type === 'select') {
+                    // Check if options are objects or strings
+                    const isObject = col.options.length > 0 && typeof col.options[0] === 'object';
+
                     inputHtml = `<select name="${col.key}" class="w-full p-3 rounded-lg input-dark text-sm">
-                        ${col.options.map(opt => `<option value="${opt}" ${existingData?.[col.key] === opt ? 'selected' : ''}>${opt}</option>`).join('')}
+                        <option value="">Seleccionar...</option>
+                        ${col.options.map(opt => {
+                        const val = isObject ? opt.value : opt;
+                        const lab = isObject ? opt.label : opt;
+                        const isSelected = existingData?.[col.key] === val ? 'selected' : '';
+                        return `<option value="${val}" ${isSelected}>${lab}</option>`;
+                    }).join('')}
                     </select>`;
                 } else {
                     inputHtml = `<input type="${col.type}" name="${col.key}" value="${existingData?.[col.key] || ''}" 
@@ -370,6 +402,13 @@
             currentEditingId = id;
             const schema = schemas[currentTab];
             const pkField = schema.columns.find(c => c.pk)?.key || 'id';
+
+            // Dynamic load for dropdowns
+            if (currentTab === 'dispositivos') {
+                const clientOptions = await fetchClientsForDropdown();
+                const clientCol = schemas.dispositivos.columns.find(c => c.key === 'cliente_id');
+                if (clientCol) clientCol.options = clientOptions;
+            }
 
             const { data, error } = await supabaseClient.from(schema.table).select('*').eq(pkField, id).single();
             if (data) {
