@@ -13,21 +13,21 @@ class TeltonikaParser {
     try {
       // First 2 bytes = IMEI length
       const imeiLength = buffer.readUInt16BE(0);
-      
+
       if (imeiLength !== 15) {
         console.warn('Invalid IMEI length:', imeiLength);
         return null;
       }
-      
+
       // Next 15 bytes = IMEI as ASCII
       const imei = buffer.slice(2, 2 + imeiLength).toString('ascii');
-      
+
       // Validate IMEI (should be 15 digits)
       if (!/^\d{15}$/.test(imei)) {
         console.warn('IMEI contains non-numeric characters:', imei);
         return null;
       }
-      
+
       return imei;
     } catch (error) {
       console.error('Error parsing IMEI:', error);
@@ -198,6 +198,13 @@ class TeltonikaParser {
     Object.assign(io, io8ByteResult.data);
     offset = io8ByteResult.newOffset;
 
+    // Codec 8 Extended (0x8E) has an additional section for Variable Length IO elements
+    if (codecID === 0x8E) {
+      const ioVarResult = this.parseVariableIOElements(buffer, offset);
+      Object.assign(io, ioVarResult.data);
+      offset = ioVarResult.newOffset;
+    }
+
     return { data: io, eventID, newOffset: offset };
   }
 
@@ -212,33 +219,71 @@ class TeltonikaParser {
   static parseIOElements(buffer, offset, byteLength, codecID) {
     const io = {};
 
-    // Number of IO elements of this size (1 byte for Codec 8, 2 bytes for Codec 8 Extended)
+    // Check if we can read the count
+    const countSize = codecID === 0x8E ? 2 : 1;
+    if (offset + countSize > buffer.length) {
+      throw new Error(`Buffer overflow: tried to read IO count at offset ${offset}, buffer length ${buffer.length}`);
+    }
+
     const count = codecID === 0x8E ? buffer.readUInt16BE(offset) : buffer.readUInt8(offset);
-    offset += codecID === 0x8E ? 2 : 1;
+    offset += countSize;
 
     for (let i = 0; i < count; i++) {
-      // IO ID (1 byte for Codec 8, 2 bytes for Codec 8 Extended)
-      const ioID = codecID === 0x8E ? buffer.readUInt16BE(offset) : buffer.readUInt8(offset);
-      offset += codecID === 0x8E ? 2 : 1;
+      const idSize = codecID === 0x8E ? 2 : 1;
+      if (offset + idSize + byteLength > buffer.length) {
+        throw new Error(`Buffer overflow: tried to read IO element ${i + 1}/${count} at offset ${offset}, required ${idSize + byteLength} bytes`);
+      }
 
-      // IO Value
+      const ioID = codecID === 0x8E ? buffer.readUInt16BE(offset) : buffer.readUInt8(offset);
+      offset += idSize;
+
       let value;
       switch (byteLength) {
-        case 1:
-          value = buffer.readUInt8(offset);
-          break;
-        case 2:
-          value = buffer.readUInt16BE(offset);
-          break;
-        case 4:
-          value = buffer.readUInt32BE(offset);
-          break;
-        case 8:
-          value = Number(buffer.readBigUInt64BE(offset));
-          break;
+        case 1: value = buffer.readUInt8(offset); break;
+        case 2: value = buffer.readUInt16BE(offset); break;
+        case 4: value = buffer.readUInt32BE(offset); break;
+        case 8: value = Number(buffer.readBigUInt64BE(offset)); break;
       }
       offset += byteLength;
+      io[`io_${ioID}`] = value;
+    }
 
+    return { data: io, newOffset: offset };
+  }
+
+  /**
+   * Parse Variable Length IO elements (only for Codec 8 Extended)
+   * @param {Buffer} buffer
+   * @param {number} offset
+   * @returns {Object}
+   */
+  static parseVariableIOElements(buffer, offset) {
+    const io = {};
+
+    if (offset + 2 > buffer.length) {
+      // If we're at the very end and can't even read the count, assume 0
+      return { data: io, newOffset: offset };
+    }
+
+    const count = buffer.readUInt16BE(offset);
+    offset += 2;
+
+    for (let i = 0; i < count; i++) {
+      if (offset + 4 > buffer.length) {
+        throw new Error(`Buffer overflow reading variable IO element header at ${offset}`);
+      }
+
+      const ioID = buffer.readUInt16BE(offset);
+      offset += 2;
+      const length = buffer.readUInt16BE(offset);
+      offset += 2;
+
+      if (offset + length > buffer.length) {
+        throw new Error(`Buffer overflow reading variable IO value of length ${length} at ${offset}`);
+      }
+
+      const value = buffer.slice(offset, offset + length).toString('hex');
+      offset += length;
       io[`io_${ioID}`] = value;
     }
 
