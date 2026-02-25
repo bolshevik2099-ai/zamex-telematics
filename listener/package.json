@@ -4,10 +4,16 @@
   "description": "TCP listener for Teltonika GPS devices with multi-tenant Supabase routing",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "fuser -k 5027/tcp || true && node index.js",
     "dev": "node --watch index.js"
   },
-  "keywords": ["teltonika", "gps", "tcp", "listener", "codec8"],
+  "keywords": [
+    "teltonika",
+    "gps",
+    "tcp",
+    "listener",
+    "codec8"
+  ],
   "author": "Zamex Telematics",
   "license": "MIT",
   "dependencies": {
