@@ -1,5 +1,5 @@
 /**
- * Zamex Telematics - Teltonika TCP Listener
+ * Zamex Telematics - Teltonika TCP ULTRA-LISTENER V3
  * Main server entry point
  */
 
@@ -45,18 +45,18 @@ const server = net.createServer((socket) => {
 
     // Handle incoming data
     socket.on('data', async (chunk) => {
-        // Concatenate new data
-        dataBuffer = Buffer.concat([dataBuffer, chunk]);
-
-        // Log raw data for debugging
-        const hex = chunk.slice(0, 32).toString('hex');
-        console.log(`[Server] 📥 Received ${chunk.length} bytes from ${deviceIMEI || clientAddress}: ${hex}${chunk.length > 32 ? '...' : ''}`);
-
-        // If we are already processing, return. The loop handles the new data.
-        if (isProcessing) return;
-        isProcessing = true;
-
         try {
+            // Concatenate new data
+            dataBuffer = Buffer.concat([dataBuffer, chunk]);
+
+            // Log raw data for debugging
+            const hex = chunk.slice(0, 32).toString('hex');
+            console.log(`[Server] 📥 Received ${chunk.length} bytes from ${deviceIMEI || clientAddress}: ${hex}${chunk.length > 32 ? '...' : ''}`);
+
+            // If we are already processing, return. The loop handles the new data.
+            if (isProcessing) return;
+            isProcessing = true;
+
             // STEP 1: IMEI Authentication
             if (!deviceIMEI) {
                 if (dataBuffer.length < 17) {
@@ -85,10 +85,16 @@ const server = net.createServer((socket) => {
 
                 // Accept connection with 0x01
                 socket.write(Buffer.from([0x01]));
-                console.log(`[Server] ✓ IMEI accepted: ${deviceIMEI}`);
+                console.log(`[Server] ✓ IMEI accepted (V3): ${deviceIMEI}`);
 
                 // Clear IMEI from buffer
                 dataBuffer = dataBuffer.slice(17);
+
+                // If there's no more data in the buffer after IMEI, stop for now
+                if (dataBuffer.length === 0) {
+                    isProcessing = false;
+                    return;
+                }
             }
 
             // STEP 2: AVL Data Processing
@@ -167,6 +173,7 @@ const server = net.createServer((socket) => {
             console.log(`[Server] 🔌 Connection closed before identification (${clientAddress})`);
         }
     });
+
 });
 
 // Handle server errors
@@ -176,9 +183,9 @@ server.on('error', (error) => {
 });
 
 // Start server
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
     console.log('═══════════════════════════════════════════════════');
-    console.log('  ZAMEX TELEMATICS - TELTONIKA LISTENER');
+    console.log('  ZAMEX TELEMATICS - TELTONIKA ULTRA-LISTENER V3');
     console.log('═══════════════════════════════════════════════════');
     console.log(`  🚀 TCP Server running on port ${PORT}`);
     console.log(`  🗄️  Master DB: ${SUPABASE_URL}`);
