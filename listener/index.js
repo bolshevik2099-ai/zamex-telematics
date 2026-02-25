@@ -34,24 +34,42 @@ const server = net.createServer((socket) => {
     let deviceIMEI = null;
     let clientConfig = null;
     let dataBuffer = Buffer.alloc(0);
+    let isProcessing = false;
+
+    // Set socket timeout (disconnect if no data for 2 minutes)
+    socket.setTimeout(120000);
+    socket.on('timeout', () => {
+        console.log(`[Server] ⏳ Connection timeout: ${deviceIMEI || clientAddress}`);
+        socket.destroy();
+    });
 
     // Handle incoming data
     socket.on('data', async (chunk) => {
+        // Concatenate new data
+        dataBuffer = Buffer.concat([dataBuffer, chunk]);
+
+        // If we are already processing a previous chunk, wait
+        if (isProcessing) return;
+        isProcessing = true;
+
+        // Pause socket while we do async DB work
+        socket.pause();
+
         try {
-            dataBuffer = Buffer.concat([dataBuffer, chunk]);
-
-            // STEP 1: IMEI Authentication (first message from device)
+            // STEP 1: IMEI Authentication
             if (!deviceIMEI) {
-                if (dataBuffer.length < 17) return; // Wait for more data
+                if (dataBuffer.length < 17) {
+                    isProcessing = false;
+                    socket.resume();
+                    return;
+                }
 
-                // Teltonika IMEI is 2 bytes length + 15 bytes ASCII
-                // But some devices might send just 15 bytes. parser.js expects 17.
                 deviceIMEI = TeltonikaParser.parseIMEI(dataBuffer);
 
                 if (!deviceIMEI) {
-                    console.error(`[Server] Invalid IMEI from ${clientAddress}`);
+                    console.error(`[Server] ❌ Invalid IMEI format from ${clientAddress}`);
                     socket.write(Buffer.from([0x00])); // Reject
-                    socket.end();
+                    socket.destroy();
                     return;
                 }
 
@@ -59,31 +77,61 @@ const server = net.createServer((socket) => {
                 clientConfig = await router.validateDevice(deviceIMEI);
 
                 if (!clientConfig) {
-                    console.warn(`[Server] ⚠️  Device ${deviceIMEI} not authorized or client not configured`);
+                    console.warn(`[Server] ⚠️  Device ${deviceIMEI} not authorized`);
                     socket.write(Buffer.from([0x00])); // Reject
-                    socket.end();
+                    socket.destroy();
                     return;
                 }
 
+                // Accept connection
                 socket.write(Buffer.from([0x01])); // Accept
                 console.log(`[Server] ✓ IMEI accepted, routing to client: ${clientConfig.cliente}`);
 
-                // Clear the 17 bytes of IMEI from buffer
+                // Clear IMEI from buffer
                 dataBuffer = dataBuffer.slice(17);
-                // Continue processing if there's more data in the same chunk
             }
 
             // STEP 2: AVL Data Processing
-            // Loop in case multiple packets are in the buffer
             while (dataBuffer.length >= 12) {
-                // Read preamble (4 bytes) and data length (4 bytes)
+                // To avoid getting stuck if the buffer gets corrupted, 
+                // search for the Teltonika preamble (00 00 00 00)
                 const preamble = dataBuffer.readUInt32BE(0);
+
+                if (preamble !== 0) {
+                    // We are out of sync. Search for the next 00 00 00 00
+                    let foundPreamble = false;
+                    for (let i = 1; i <= dataBuffer.length - 12; i++) {
+                        if (dataBuffer.readUInt32BE(i) === 0) {
+                            console.warn(`[Server] 🔄 Resyncing buffer for ${deviceIMEI}: skipping ${i} bytes`);
+                            dataBuffer = dataBuffer.slice(i);
+                            foundPreamble = true;
+                            break;
+                        }
+                    }
+
+                    if (!foundPreamble) {
+                        // No preamble found in the current buffer, wait for more data but keep the last 3 bytes just in case
+                        if (dataBuffer.length > 4) {
+                            dataBuffer = dataBuffer.slice(dataBuffer.length - 3);
+                        }
+                        break;
+                    }
+                }
+
+                // Now we are (probably) at the start of a packet
                 const dataLength = dataBuffer.readUInt32BE(4);
                 const totalLength = dataLength + 12; // 8 bytes header + dataLength + 4 bytes CRC
 
+                // Security check for crazy lengths
+                if (dataLength > 10000) {
+                    console.error(`[Server] ❌ Invalid data length (${dataLength}) from ${deviceIMEI}. Dropping buffer.`);
+                    dataBuffer = Buffer.alloc(0);
+                    break;
+                }
+
                 if (dataBuffer.length < totalLength) {
-                    // console.log(`[Server] Waiting for more data (${dataBuffer.length}/${totalLength})`);
-                    break; // Wait for the rest of the packet
+                    // Partial packet, wait for more
+                    break;
                 }
 
                 // Extract full packet
@@ -92,10 +140,7 @@ const server = net.createServer((socket) => {
                 // Parse AVL data
                 const avlData = TeltonikaParser.parseAVLData(packet);
 
-                if (!avlData || avlData.records.length === 0) {
-                    console.warn(`[Server] Failed to parse AVL data from ${deviceIMEI}`);
-                    socket.write(TeltonikaParser.createACK(0));
-                } else {
+                if (avlData && avlData.records.length > 0) {
                     console.log(`[Server] 📊 Received ${avlData.numberOfRecords} records from ${deviceIMEI}`);
 
                     // Route data to client's Supabase
@@ -108,8 +153,12 @@ const server = net.createServer((socket) => {
                     if (success) {
                         console.log(`[Server] ✓ ACK sent: ${recordsToAck} records`);
                     } else {
-                        console.error(`[Server] ❌ Failed to route data, ACK sent: 0`);
+                        console.error(`[Server] ❌ Routing/ACK failure for ${deviceIMEI}`);
                     }
+                } else {
+                    console.warn(`[Server] ⚠️  Empty or invalid AVL packet from ${deviceIMEI}`);
+                    // Even if invalid, we might need to send 0 ACK to keep it alive
+                    socket.write(TeltonikaParser.createACK(0));
                 }
 
                 // Remove processed packet from buffer
@@ -117,9 +166,12 @@ const server = net.createServer((socket) => {
             }
 
         } catch (error) {
-            console.error(`[Server] Error processing data from ${deviceIMEI || clientAddress}:`, error);
-            // On error, it's safer to clear the buffer to avoid getting stuck in a loop
+            console.error(`[Server] 💥 Error processing data for ${deviceIMEI || clientAddress}:`, error.message);
+            // On severe error, reset buffer
             dataBuffer = Buffer.alloc(0);
+        } finally {
+            isProcessing = false;
+            socket.resume();
         }
     });
 
@@ -130,7 +182,11 @@ const server = net.createServer((socket) => {
 
     // Handle socket close
     socket.on('close', () => {
-        console.log(`[Server] 🔌 Connection closed: ${deviceIMEI || clientAddress}\n`);
+        if (deviceIMEI) {
+            console.log(`[Server] 🔌 Connection closed: ${deviceIMEI}`);
+        } else {
+            console.log(`[Server] 🔌 Connection closed before identification (${clientAddress})`);
+        }
     });
 });
 
