@@ -4,7 +4,7 @@
   "description": "TCP listener for Teltonika GPS devices with multi-tenant Supabase routing",
   "main": "index.js",
   "scripts": {
-    "start": "fuser -k 5027/tcp || true && node index.js",
+    "start": "node index.js",
     "dev": "node --watch index.js"
   },
   "keywords": [
