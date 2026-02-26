@@ -71,7 +71,37 @@ function handleTeltonikaConnection(socket, initialChunk, clientAddress) {
                     if (dataBuffer.length < 12) break;
 
                     try {
-                        const avlData = TeltonikaParser.parseAVLData(dataBuffer);
+                        const preamble = dataBuffer.readUInt32BE(0);
+                        if (preamble !== 0) {
+                            console.warn(`[Server TCP] 🔄 Resyncing buffer for ${deviceIMEI}...`);
+                            let syncPos = -1;
+                            for (let i = 1; i <= dataBuffer.length - 4; i++) {
+                                if (dataBuffer.readUInt32BE(i) === 0) {
+                                    syncPos = i; break;
+                                }
+                            }
+                            if (syncPos !== -1) {
+                                dataBuffer = dataBuffer.slice(syncPos);
+                                continue;
+                            } else {
+                                dataBuffer = Buffer.alloc(0);
+                                break;
+                            }
+                        }
+
+                        const dataLength = dataBuffer.readUInt32BE(4);
+                        const totalLength = dataLength + 12;
+
+                        if (dataBuffer.length < totalLength) {
+                            console.log(`[Server TCP] ⏳ Paquete parcial (${dataBuffer.length}/${totalLength}). Esperando resto...`);
+                            break; // Salimos sin borrar el buffer, para esperar el resto
+                        }
+
+                        // Extraer paquete exacto
+                        const packet = dataBuffer.slice(0, totalLength);
+                        dataBuffer = dataBuffer.slice(totalLength); // Solo removemos lo procesado
+
+                        const avlData = TeltonikaParser.parseAVLData(packet);
 
                         if (avlData && avlData.records && avlData.records.length > 0) {
                             console.log(`[Server TCP] 📊 Procesando ${avlData.records.length} registros (${deviceIMEI})`);
@@ -81,16 +111,21 @@ function handleTeltonikaConnection(socket, initialChunk, clientAddress) {
                             );
 
                             const ack = Buffer.alloc(4);
-                            ack.writeUInt32BE(avlData.records.length, 0);
+                            ack.writeUInt32BE(avlData.numberOfRecords || avlData.records.length, 0);
                             socket.write(ack);
-                            console.log(`[Server TCP] ✓ ACK ${avlData.records.length} enviado a ${deviceIMEI}`);
+                            console.log(`[Server TCP] ✓ ACK ${avlData.numberOfRecords || avlData.records.length} enviado a ${deviceIMEI}`);
+                        } else {
+                            console.warn(`[Parser TCP] ⚠️ Datos inválidos de ${deviceIMEI}. Saltando.`);
+                            const ack = Buffer.alloc(4);
+                            ack.writeUInt32BE(0, 0);
+                            socket.write(ack);
                         }
                     } catch (e) {
-                        console.error("[Parser TCP] ⚠️ Error leyendo datos, aislando el fallo. Retomando...");
+                        console.error("[Parser TCP] ⚠️ Error leyendo paquete TCP. Corrupción detectada:", e.message);
+                        dataBuffer = Buffer.alloc(0);
+                        break;
                     }
 
-                    dataBuffer = Buffer.alloc(0);
-                    break;
                 }
             }
         } catch (err) {
