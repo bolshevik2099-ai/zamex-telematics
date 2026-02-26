@@ -28,10 +28,14 @@ const server = net.createServer((socket) => {
                 const ack = Buffer.alloc(4);
                 ack.writeUInt32BE(numRecords, 0);
 
-                // MANDAR ACK EN BINARIO Y CERRAR EL SOCKET INMEDIATAMENTE
+                // MANDAR ACK EN BINARIO Y DARLE TIEMPO AL GPS PARA RESPIRAR
                 socket.write(ack, 'binary', () => {
-                    console.log(`[TCP] ✓ ACK ${numRecords} enviado con éxito. CERRANDO SOCKET.`);
-                    socket.end(); // Fuerza al GPS a entender que la transacción terminó
+                    console.log(`[TCP] ✓ ACK ${numRecords} enviado con éxito. Esperando 500ms para cerrar...`);
+                    // NO CERRAR INMEDIATAMENTE - Dar tiempo al GPS de procesar el ACK
+                    setTimeout(() => {
+                        socket.end(); // Fuerza al GPS a entender que la transacción terminó
+                        console.log(`[TCP] 🔌 Socket cerrado tras 500ms de gracia.`);
+                    }, 500);
                 });
 
                 // 3. SEPARAR EL PROCESAMIENTO
