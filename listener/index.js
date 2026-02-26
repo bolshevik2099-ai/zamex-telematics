@@ -20,13 +20,16 @@ const server = net.createServer((socket) => {
             // 2. Manejo de Datos (Payload)
             if (data.length > 20) {
                 console.log(`[TCP] 📥 Recibidos ${data.length} bytes de datos crudos`);
-                // Aquí el agente puede meter su lógica de Supabase LUEGO.
-                // Por ahora, solo mandamos el ACK para que el GPS borre su memoria.
+                // AQUÍ ESTÁ LA MAGIA PARA FORZAR EL BORRADO DEL GPS SIN CRASHEAR
                 const numRecords = data[9]; // El protocolo Teltonika trae el conteo aquí
                 const ack = Buffer.alloc(4);
                 ack.writeUInt32BE(numRecords, 0);
-                socket.write(ack);
-                console.log(`[TCP] ✓ ACK ${numRecords} enviado. GPS debería limpiar memoria.`);
+
+                // MANDAR ACK EN BINARIO Y CERRAR EL SOCKET INMEDIATAMENTE
+                socket.write(ack, 'binary', () => {
+                    console.log(`[TCP] ✓ ACK ${numRecords} enviado en binario. CERRANDO SOCKET.`);
+                    socket.end(); // Fuerza al GPS a entender que la transacción terminó con éxito
+                });
             }
         } catch (err) {
             console.error('[ERROR] Falló el procesamiento pero el servidor SIGUE VIVO:', err.message);
