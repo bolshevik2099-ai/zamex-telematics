@@ -107,16 +107,21 @@ function handleTeltonikaConnection(socket, initialChunk, clientAddress) {
                         const avlData = TeltonikaParser.parseAVLData(packet);
 
                         if (avlData && avlData.records && avlData.records.length > 0) {
-                            console.log(`[Server TCP] 📊 Procesando ${avlData.records.length} registros (${deviceIMEI})`);
+                            const recordCount = avlData.numberOfRecords || avlData.records.length;
+                            console.log(`[Server TCP] 📊 Payload válido de ${deviceIMEI}: ${recordCount} registros`);
 
-                            await router.routeData(clientConfig, avlData.records).catch(e =>
+                            // 🚨 VITAL: Enviar ACK INMEDIATAMENTE para que el GPS deje de re-transmitir el mismo paquete
+                            const ack = Buffer.alloc(4);
+                            ack.writeUInt32BE(recordCount, 0);
+                            socket.write(ack);
+                            console.log(`[Server TCP] ✓ ACK ${recordCount} enviado al instante para ${deviceIMEI}`);
+
+                            // Luego guardamos en Supabase en segundo plano sin hacer "await" que congele la conexión
+                            router.routeData(clientConfig, avlData.records).then(() => {
+                                console.log(`[Router Supabase] 💾 Confirmada inserción de ${recordCount} registros de ${deviceIMEI}`);
+                            }).catch(e =>
                                 console.error("[Router Supabase] ❌ Error de Base de Datos:", e.message)
                             );
-
-                            const ack = Buffer.alloc(4);
-                            ack.writeUInt32BE(avlData.numberOfRecords || avlData.records.length, 0);
-                            socket.write(ack);
-                            console.log(`[Server TCP] ✓ ACK ${avlData.numberOfRecords || avlData.records.length} enviado a ${deviceIMEI}`);
                         } else {
                             console.warn(`[Parser TCP] ⚠️ Datos inválidos de ${deviceIMEI}. Saltando.`);
                             const ack = Buffer.alloc(4);
