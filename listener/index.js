@@ -55,16 +55,19 @@ function handleTeltonikaConnection(socket, initialChunk, clientAddress) {
                     deviceIMEI = imeiStr;
                     console.log(`[Server TCP] 📱 IMEI Identificado: ${deviceIMEI}`);
 
+                    // 🚨 VITAL: Responder ACK 0x01 INMEDIATAMENTE para que el GPS no cierre la sesión por timeout!
+                    socket.write(Buffer.from([0x01]));
+                    console.log(`[Server TCP] ✅ Handshake enviado al momento para ${deviceIMEI}`);
+
                     clientConfig = await router.validateDevice(deviceIMEI);
                     if (!clientConfig) {
                         console.warn(`[Server TCP] ⚠️  Rechazado (No autorizado): ${deviceIMEI}`);
-                        socket.write(Buffer.from([0x00]));
+                        // Ya mandamos 0x01, pero como no está autorizado, cortamos
                         socket.destroy();
                         break;
                     }
 
-                    socket.write(Buffer.from([0x01]));
-                    console.log(`[Server TCP] ✅ Handshake OK para ${deviceIMEI}`);
+                    console.log(`[Server TCP] 🔐 Validación Supabase superada para ${deviceIMEI}`);
                     dataBuffer = dataBuffer.slice(17);
                 } else {
                     // Datos AVL
