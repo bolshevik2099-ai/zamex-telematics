@@ -25,13 +25,19 @@ const router = new DataRouter(masterSupabase);
 // FUNCIÓN BOMBEO DE FLUJO DE DATOS
 // ==========================================
 function handleTeltonikaConnection(socket, initialChunk, clientAddress) {
+    // 🚨 VITAL: Re-asegurar Nagle bypass en el handler específico
+    socket.setNoDelay(true);
+    socket.setKeepAlive(true, 60000);
+    socket.setTimeout(120000); // 2 minutos de tolerancia antes de soltar la red por inactividad
+
     let deviceIMEI = null;
     let clientConfig = null;
     let dataBuffer = Buffer.from(initialChunk); // Iniciar de inmediato
     let isProcessing = false;
 
-    // Primer log
+    // Primer log exhaustivo
     console.log(`[Server TCP] 📥 Recibidos ${initialChunk.length} bytes iniciales de ${clientAddress}`);
+    console.log(`[Server TCP] 🔍 Raw Hex Inicial: ${initialChunk.toString('hex')}`);
 
     const pump = async () => {
         if (isProcessing) return;
@@ -144,9 +150,15 @@ function handleTeltonikaConnection(socket, initialChunk, clientAddress) {
     // Eventos de red continuos
     socket.on('data', (chunk) => {
         console.log(`[Server TCP] 📥 Recibidos ${chunk.length} bytes adicionales de ${deviceIMEI || clientAddress}`);
+        console.log(`[Server TCP] 🔍 Raw Hex Adicional: ${chunk.toString('hex').substring(0, 100)}...`);
         if (dataBuffer.length > 20000) dataBuffer = Buffer.alloc(0);
         dataBuffer = Buffer.concat([dataBuffer, chunk]);
         pump();
+    });
+
+    socket.on('timeout', () => {
+        console.warn(`[TCP Timeout] ⏱️ El dispositivo ${deviceIMEI || clientAddress} no envió datos en 120s. Cerrando conexión por inactividad.`);
+        socket.destroy();
     });
 
     socket.on('error', (e) => console.log(`[TCP Error] 🔌 ${deviceIMEI || clientAddress} -> ${e.message}`));
