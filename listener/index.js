@@ -1,28 +1,25 @@
 'use strict';
 /**
- * ZAMEX Telematics - Teltonika TCP Listener  ///  V9 CLEAN
+ * ZAMEX Telematics - Teltonika TCP Listener  V9.1  (INSTANT-ACK)
  *
- * Architecture: Smart Multiplexer on a single port
- * ┌──────────────────────────────────────────────────────┐
- * │  PORT (process.env.PORT || 5027)                     │
- * │  Every TCP connection enters the Multiplexer.        │
- * │                                                      │
- * │  First byte == ASCII letter? → HTTP Health Check OK  │
- * │  First byte == 0x00?         → Teltonika TCP Handler │
- * │  Anything else?              → Drop                  │
- * └──────────────────────────────────────────────────────┘
+ * KEY FIX in V9.1:
+ *   In V9.0, we were still `await`-ing router.validateDevice() before
+ *   processing AVL data. Even though validateDevice was called AFTER
+ *   sending the 0x01 handshake, the GPS had already sent its AVL payload
+ *   during that await window and was waiting for a 4-byte ACK.
+ *   If validateDevice took >200ms (Supabase latency), the GPS hit
+ *   its internal ACK timeout, closed the connection, and the batch
+ *   was considered "lost" — leading to retransmission loops.
  *
- * Teltonika TCP flow:
- *   1. Device sends 17-byte IMEI packet  [2b length][15b IMEI]
- *   2. Server responds: 0x01 (accept) immediately
- *   3. Server validates IMEI in Supabase asynchronously
- *      (while waiting, the socket listener is already active
- *       to prevent race-condition data loss)
- *   4. Device sends AVL data packets
- *   5. Server sends 4-byte ACK = number of records declared by device
- *      (using originalCount, not records.length, to prevent re-send loops)
- *   6. Server inserts records into client Supabase in background (fire-and-forget)
- *   7. Repeat step 4-6 for each batch
+ *   V9.1 COMPLETELY DECOUPLES GPS ACK FROM SUPABASE:
+ *
+ *   1. IMEI arrives → 0x01 sent immediately
+ *   2. validateDevice() is started as a BACKGROUND PROMISE (no await)
+ *   3. GPS sends AVL data → parsed → ACK sent INSTANTLY (0 Supabase dependency)
+ *   4. routeData() awaits the background validateDevice promise and inserts
+ *
+ *   The GPS gets its ACK in microseconds. Supabase gets the data a
+ *   few hundred milliseconds later, completely independently.
  */
 
 require('dotenv').config();
@@ -31,56 +28,42 @@ const { createClient } = require('@supabase/supabase-js');
 const TeltonikaParser = require('./parser');
 const DataRouter = require('./router');
 
-// ── Environment ──────────────────────────────────────────────────────────────
-
+// ── Environment ───────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 5027;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
-    console.error('[Startup] ❌ SUPABASE_URL or SUPABASE_SERVICE_KEY is missing. Exiting.');
+    console.error('[Startup] ❌ Missing SUPABASE_URL or SUPABASE_SERVICE_KEY. Exiting.');
     process.exit(1);
 }
 
 const masterSupabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const router = new DataRouter(masterSupabase);
 
-// ── Teltonika connection handler ─────────────────────────────────────────────
-
-/**
- * Handles a validated Teltonika TCP connection.
- * Called by the multiplexer after the first byte confirms Teltonika traffic.
- *
- * @param {net.Socket} socket
- * @param {Buffer}     firstChunk - The chunk that triggered detection (starts with 0x00)
- * @param {string}     remoteAddr - "IP:port" string for logging
- */
+// ── Teltonika connection handler ──────────────────────────────────────────────
 function handleTeltonika(socket, firstChunk, remoteAddr) {
 
-    // ── Socket tuning ──────────────────────────────────────────────────────
-    socket.setNoDelay(true);                // Disable Nagle — ACKs must leave instantly
-    socket.setKeepAlive(true, 30_000);      // Keep the link alive between batches
-    socket.setTimeout(120_000);             // Drop silent connections after 2 minutes
+    socket.setNoDelay(true);
+    socket.setKeepAlive(true, 30_000);
+    socket.setTimeout(120_000);
 
-    // ── State ──────────────────────────────────────────────────────────────
     let imei = null;
-    let clientCfg = null;
+    let clientCfgPromise = null; // Validation runs in background — NOT awaited in main path
     let buf = Buffer.alloc(0);
-    let busy = false;               // Async mutex — prevents concurrent pump() runs
+    let busy = false;
 
-    console.log(`[TCP] 📡 Teltonika connection from ${remoteAddr} (${firstChunk.length} bytes)`);
+    console.log(`[TCP] 📡 Teltonika from ${remoteAddr} (${firstChunk.length} bytes)`);
 
-    // ── Data pump (async state machine) ───────────────────────────────────
-    /**
-     * Drains buf byte-by-byte in a loop.
-     * The isProcessing flag ensures only one instance runs at a time,
-     * even when socket.on('data') fires while an await is pending.
-     */
+    // ── Data pump ──────────────────────────────────────────────────────────
     const pump = async () => {
         if (busy) return;
         busy = true;
         try {
             await _drain();
+        } catch (err) {
+            console.error(`[TCP] ❌ Pump error (${imei || remoteAddr}): ${err.message}`);
+            buf = Buffer.alloc(0);
         } finally {
             busy = false;
         }
@@ -89,14 +72,14 @@ function handleTeltonika(socket, firstChunk, remoteAddr) {
     const _drain = async () => {
         while (true) {
 
-            // ── Phase 1: IMEI handshake ──────────────────────────────────
+            // ── Phase 1: IMEI (17 bytes) ─────────────────────────────────
             if (!imei) {
-                if (buf.length < 17) break; // Wait for complete IMEI packet
+                if (buf.length < 17) break;
 
                 const parsed = TeltonikaParser.parseIMEI(buf);
                 if (!parsed) {
-                    console.warn(`[TCP] ❌ Invalid IMEI from ${remoteAddr}. Dropping.`);
-                    socket.write(Buffer.from([0x00])); // Reject
+                    console.warn(`[TCP] ❌ Invalid IMEI from ${remoteAddr}`);
+                    socket.write(Buffer.from([0x00]));
                     socket.destroy();
                     return;
                 }
@@ -104,85 +87,78 @@ function handleTeltonika(socket, firstChunk, remoteAddr) {
                 imei = parsed;
                 console.log(`[TCP] 📱 IMEI: ${imei}`);
 
-                // ⚡ Respond IMMEDIATELY before any async work
+                // ⚡ Step 1: Handshake immediately — GPS is waiting for this
                 socket.write(Buffer.from([0x01]));
-                console.log(`[TCP] ✅ Handshake sent to ${imei}`);
+                console.log(`[TCP] ✅ Handshake sent`);
 
-                // Now validate asynchronously — socket.on('data') is already
-                // registered below so no bytes will be lost during this await
-                clientCfg = await router.validateDevice(imei);
+                // ⚡ Step 2: Validation runs in background (NOT awaited here)
+                //    AVL data will arrive and be ACK'd instantly in Phase 2
+                //    below WITHOUT waiting for this promise to resolve.
+                clientCfgPromise = router.validateDevice(imei);
 
-                if (!clientCfg) {
-                    console.warn(`[TCP] ⛔ Device rejected: ${imei}`);
-                    socket.destroy();
-                    return;
-                }
-
-                buf = buf.slice(17); // Consume IMEI packet from buffer
-                continue;            // Immediately check if AVL data already arrived
+                buf = buf.slice(17); // Remove IMEI bytes
+                continue;           // Immediately process any pending AVL data
             }
 
-            // ── Phase 2: AVL data packets ────────────────────────────────
-            if (buf.length < 12) break; // Minimum header size
+            // ── Phase 2: AVL packets (instant ACK, no Supabase wait) ──────
+            if (buf.length < 12) break;
 
-            // Preamble MUST be 4 zero bytes — resync if corrupted
+            // Resync if preamble is corrupted
             const preamble = buf.readUInt32BE(0);
             if (preamble !== 0) {
                 const syncAt = _findNextPreamble(buf);
                 if (syncAt > 0) {
-                    console.warn(`[TCP] 🔄 Skipping ${syncAt} noise bytes — resyncing`);
                     buf = buf.slice(syncAt);
                 } else {
-                    console.warn(`[TCP] 🗑️ No valid preamble found — clearing buffer`);
                     buf = Buffer.alloc(0);
                 }
                 continue;
             }
 
-            // Total expected packet size: Preamble(4) + Length(4) + Data(N) + CRC(4)
             const dataLen = buf.readUInt32BE(4);
-            const totalLength = 4 + 4 + dataLen + 4;
+            const totalLength = dataLen + 12;
 
-            if (buf.length < totalLength) {
-                // Partial packet — wait for more chunks
-                break;
-            }
+            if (buf.length < totalLength) break; // Incomplete packet — wait for more
 
-            // Extract exactly one packet from the buffer
             const packet = buf.slice(0, totalLength);
             buf = buf.slice(totalLength);
 
             const avl = TeltonikaParser.parseAVLData(packet);
 
             if (avl && avl.records.length > 0) {
-                // ⚡ ACK uses originalCount (what the GPS claimed) — NOT records.length
-                // If we ACK less than originalCount, the GPS thinks data was lost
-                // and will re-send the entire packet forever.
-                const ackCount = avl.originalCount;
-                socket.write(TeltonikaParser.buildACK(ackCount));
-                console.log(`[TCP] ✓ ACK(${ackCount}) → ${imei}  [parsed: ${avl.records.length}]`);
 
-                // Fire-and-forget: insert in background without blocking the read loop
-                router.routeData(clientCfg, avl.records)
-                    .then(() => console.log(`[DB]  💾 Saved ${avl.records.length} records for ${clientCfg.cliente}`))
-                    .catch(e => console.error(`[DB]  ❌ Insert failed: ${e.message}`));
+                // ⚡⚡⚡ ACK SENT INSTANTLY — zero dependency on Supabase ⚡⚡⚡
+                socket.write(TeltonikaParser.buildACK(avl.originalCount));
+                console.log(`[TCP] ✓ ACK(${avl.originalCount}) → ${imei}  [parsed: ${avl.records.length}]`);
+
+                // DB insert runs completely independently in the background
+                const recordsCopy = avl.records.slice();
+                (async () => {
+                    try {
+                        const cfg = await clientCfgPromise; // Already resolved by now in most cases
+                        if (!cfg) {
+                            console.warn(`[DB]  ⛔ No config for ${imei}. ${recordsCopy.length} records lost.`);
+                            return;
+                        }
+                        await router.routeData(cfg, recordsCopy);
+                        console.log(`[DB]  💾 Saved ${recordsCopy.length} records for ${cfg.cliente}`);
+                    } catch (e) {
+                        console.error(`[DB]  ❌ Insert error: ${e.message}`);
+                    }
+                })();
 
             } else {
-                // Parser returned nothing useful — still ACK 0 so the GPS moves on
-                console.warn(`[TCP] ⚠️ Empty or unreadable AVL packet from ${imei}. ACK(0) sent.`);
+                console.warn(`[TCP] ⚠️ Unreadable AVL from ${imei}. ACK(0).`);
                 socket.write(TeltonikaParser.buildACK(0));
             }
         }
     };
 
     // ── Socket events ──────────────────────────────────────────────────────
-    // IMPORTANT: Register 'data' handler BEFORE calling pump() the first time.
-    // This prevents a race condition: if pump() awaits validateDevice() and the
-    // GPS sends its AVL payload during that await, the data would be silently
-    // discarded if the handler wasn't registered yet.
+    // CRITICAL: registered BEFORE first pump() call to prevent race conditions
     socket.on('data', chunk => {
         if (buf.length > 50_000) {
-            console.warn(`[TCP] 🚨 Buffer overflow protection triggered for ${imei}. Resetting.`);
+            console.warn(`[TCP] 🚨 Buffer overflow for ${imei}. Resetting.`);
             buf = Buffer.alloc(0);
         }
         buf = Buffer.concat([buf, chunk]);
@@ -190,13 +166,13 @@ function handleTeltonika(socket, firstChunk, remoteAddr) {
     });
 
     socket.on('timeout', () => {
-        console.log(`[TCP] ⏱️ Inactivity timeout for ${imei || remoteAddr}. Closing.`);
+        console.log(`[TCP] ⏱️ Timeout: ${imei || remoteAddr}`);
         socket.destroy();
     });
 
     socket.on('error', err => {
         if (err.code !== 'ECONNRESET') {
-            console.log(`[TCP] 🔌 Socket error ${imei || remoteAddr}: ${err.message}`);
+            console.log(`[TCP] 🔌 Error ${imei || remoteAddr}: ${err.message}`);
         }
     });
 
@@ -204,12 +180,11 @@ function handleTeltonika(socket, firstChunk, remoteAddr) {
         console.log(`[TCP] 🔌 Disconnected: ${imei || remoteAddr}`);
     });
 
-    // ── Kick off processing with the first chunk ───────────────────────────
+    // Kick off with the initial chunk already in hand
     buf = Buffer.concat([buf, firstChunk]);
     pump();
 }
 
-// Helper: find the next 0x00000000 preamble position in buf for resync
 function _findNextPreamble(buf) {
     for (let i = 1; i <= buf.length - 4; i++) {
         if (buf.readUInt32BE(i) === 0) return i;
@@ -217,54 +192,46 @@ function _findNextPreamble(buf) {
     return -1;
 }
 
-// ── Smart Multiplexer ────────────────────────────────────────────────────────
-
+// ── Smart Multiplexer (HTTP health check + Teltonika TCP on same port) ────────
 const server = net.createServer(socket => {
     socket.setNoDelay(true);
     socket.setKeepAlive(true, 30_000);
 
     const remoteAddr = `${socket.remoteAddress}:${socket.remotePort}`;
 
-    // Only inspect the very first chunk — then dispatch permanently
     socket.once('data', chunk => {
         if (!chunk || chunk.length === 0) return;
-
         const b0 = chunk[0];
 
         if (b0 >= 0x41 && b0 <= 0x5A) {
-            // HTTP (GET/POST/etc.) — Railway health check
-            socket.write('HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nConnection: close\r\n\r\nZAMEX Teltonika Listener V9 — OK\n');
+            // HTTP — Railway health check
+            socket.write('HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nConnection: close\r\n\r\nZAMEX Listener V9.1 INSTANT-ACK\n');
             socket.end();
-
         } else if (b0 === 0x00) {
-            // Teltonika data (all Teltonika packets start with 0x00)
+            // Teltonika
             handleTeltonika(socket, chunk, remoteAddr);
-
         } else {
-            console.warn(`[Mux] ❓ Unknown traffic from ${remoteAddr} (first byte: 0x${b0.toString(16)}). Dropped.`);
             socket.end();
         }
     });
 
     socket.on('error', err => {
         if (err.code !== 'ECONNRESET') {
-            console.log(`[Mux] Socket error ${remoteAddr}: ${err.message}`);
+            console.log(`[Mux] Error ${remoteAddr}: ${err.message}`);
         }
     });
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-    console.log('═══════════════════════════════════════════════════════');
-    console.log('  ZAMEX TELEMATICS — TELTONIKA LISTENER  V9  CLEAN     ');
-    console.log('  Smart Multiplexer · Codec 8/8E · Fire-and-Forget DB  ');
-    console.log(`  🚀  Listening on port ${PORT}                        `);
-    console.log('═══════════════════════════════════════════════════════\n');
+    console.log('══════════════════════════════════════════════════════════');
+    console.log('  ZAMEX TELEMATICS — TELTONIKA LISTENER  V9.1  INSTANT-ACK ');
+    console.log('  GPS ACK is decoupled from Supabase. Zero-latency confirm. ');
+    console.log(`  🚀  Listening on port ${PORT}`);
+    console.log('══════════════════════════════════════════════════════════\n');
 });
 
-// ── Graceful shutdown ────────────────────────────────────────────────────────
-
-const shutdown = (sig) => {
-    console.log(`\n[System] ${sig} received — shutting down gracefully…`);
+const shutdown = sig => {
+    console.log(`\n[System] ${sig} — shutting down.`);
     server.close(() => process.exit(0));
 };
 process.on('SIGTERM', () => shutdown('SIGTERM'));
