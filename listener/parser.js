@@ -1,43 +1,67 @@
+'use strict';
 /**
- * Teltonika Codec 8 / 8 Extended Protocol Parser
- * Parses binary AVL data packets from Teltonika GPS devices
+ * ZAMEX Telematics - Teltonika Protocol Parser
+ * Supports: Codec 8 (0x08) and Codec 8 Extended (0x8E)
+ *
+ * Packet structure (Codec 8):
+ *   [4b Preamble=0x00000000][4b DataLen][1b CodecID][1b RecordCount]
+ *   [Records...][1b RecordCount2][4b CRC32]
+ *
+ * IMEI packet:
+ *   [2b Length][Nb IMEI string in ASCII]
  */
 
 class TeltonikaParser {
+
+  // ─── IMEI HANDSHAKE ──────────────────────────────────────────────────────
+
   /**
-   * Parse IMEI from initial connection
+   * Extracts the IMEI string from the initial 17-byte handshake packet.
+   * @param {Buffer} buf - Raw socket buffer (minimum 17 bytes expected)
+   * @returns {string|null} 15-digit IMEI string, or null on failure
    */
-  static parseIMEI(buffer) {
+  static parseIMEI(buf) {
     try {
-      if (buffer.length < 2) return null;
-      const imeiLength = buffer.readUInt16BE(0);
+      if (buf.length < 2) return null;
+      const len = buf.readUInt16BE(0);          // 2-byte length prefix
+      if (len !== 15) return null;              // IMEI is always 15 digits
+      if (buf.length < 2 + len) return null;   // Incomplete packet
 
-      if (imeiLength !== 15) return null;
-      if (buffer.length < 2 + imeiLength) return null;
-
-      const imei = buffer.slice(2, 2 + imeiLength).toString('ascii');
-      if (!/^\d{15}$/.test(imei)) return null;
-
+      const imei = buf.slice(2, 2 + len).toString('ascii');
+      if (!/^\d{15}$/.test(imei)) return null; // Must be 15 numeric digits
       return imei;
-    } catch (error) {
-      console.error('[Parser] IMEI Error:', error.message);
+    } catch (e) {
+      console.error('[Parser] IMEI parse error:', e.message);
       return null;
     }
   }
 
+  // ─── AVL DATA PACKET ─────────────────────────────────────────────────────
+
   /**
-   * Parse Codec 8 AVL data packet with extreme robustness
+   * Parses a complete Codec 8 / 8E AVL data packet.
+   * @param {Buffer} buf - Exact-length packet buffer (preamble to CRC)
+   * @returns {{ codecID, originalCount, numberOfRecords, records }|null}
    */
-  static parseAVLData(buffer) {
+  static parseAVLData(buf) {
     try {
       let offset = 0;
 
-      // Header: Preamble (4) + Length (4)
-      if (buffer.length < offset + 8) return null;
-      offset += 8;
+      // Preamble (4 bytes of 0x00)
+      if (buf.length < 8) return null;
+      const preamble = buf.readUInt32BE(0);
+      if (preamble !== 0) {
+        console.warn('[Parser] ⚠️ Preamble is not zero:', preamble.toString(16));
+        return null;
+      }
+      offset += 4;
+
+      // Data length (4 bytes) — excludes preamble + length + CRC
+      const dataLen = buf.readUInt32BE(offset);
+      offset += 4;
 
       // Codec ID (1 byte)
-      const codecID = buffer.readUInt8(offset);
+      const codecID = buf.readUInt8(offset);
       offset += 1;
 
       if (codecID !== 0x08 && codecID !== 0x8E) {
@@ -45,184 +69,182 @@ class TeltonikaParser {
         return null;
       }
 
-      // Number of Data (1 byte)
-      const numberOfData = buffer.readUInt8(offset);
+      // Number of records (1 byte)
+      const originalCount = buf.readUInt8(offset);
       offset += 1;
 
       const records = [];
 
-      // Parse each AVL record with internal error isolation
-      for (let i = 0; i < numberOfData; i++) {
+      for (let i = 0; i < originalCount; i++) {
         try {
-          // Check if we have enough buffer for a minimal record (approx 26 bytes) + footer + CRC
-          if (offset + 26 + 5 > buffer.length) break;
-
-          const record = this.parseAVLRecord(buffer, offset, codecID);
-          if (record && record.data) {
-            records.push(record.data);
-            offset = record.newOffset;
-          } else {
-            break; // Impossible to sync if record parsing fails without returning offset
-          }
-        } catch (recordError) {
-          console.error(`[Parser] ❌ Record ${i + 1}/${numberOfData} failed:`, recordError.message);
-          break; // Stop parsing packet if we lose synchronization
+          if (offset + 26 + 5 > buf.length) break; // Not enough bytes for min record
+          const result = this._parseRecord(buf, offset, codecID);
+          if (!result) break;
+          records.push(result.data);
+          offset = result.offset;
+        } catch (recErr) {
+          console.error(`[Parser] Record ${i + 1}/${originalCount} failed: ${recErr.message}`);
+          break;
         }
       }
 
-      // Validate Footer (1 byte)
-      if (offset < buffer.length - 4) {
-        const footerCount = buffer.readUInt8(offset);
-        if (footerCount !== numberOfData) {
-          console.warn(`[Parser] ⚠️ Footer mismatch: expected ${numberOfData}, got ${footerCount}`);
+      // Footer record count (1 byte) — should match originalCount
+      if (offset < buf.length - 4) {
+        const footer = buf.readUInt8(offset);
+        if (footer !== originalCount) {
+          console.warn(`[Parser] ⚠️ Footer mismatch: header=${originalCount} footer=${footer}`);
         }
+        offset += 1;
       }
+
+      // CRC32 (4 bytes — we skip validation for performance but consume the bytes)
 
       return {
         codecID,
-        numberOfRecords: records.length,
-        originalCount: numberOfData,
+        originalCount,       // What the GPS claimed to send (use this for ACK!)
+        numberOfRecords: records.length, // What we actually parsed
         records
       };
-    } catch (error) {
-      console.error('[Parser] 💥 Packet crash:', error.message);
+    } catch (e) {
+      console.error('[Parser] 💥 AVL packet crash:', e.message);
       return null;
     }
   }
 
-  static parseAVLRecord(buffer, offset, codecID) {
-    // Extensive bounds check before reading
-    if (offset + 8 + 1 + 15 + 2 > buffer.length) {
-      throw new Error('Buffer end reached during record parse');
-    }
+  // ─── PRIVATE: SINGLE AVL RECORD ──────────────────────────────────────────
+
+  static _parseRecord(buf, offset, codecID) {
+    if (offset + 8 + 1 + 15 > buf.length) throw new Error('Buffer too short for record header');
 
     const record = {};
 
-    // Timestamp (8 bytes)
-    const timestamp = buffer.readBigUInt64BE(offset);
-    record.recorded_at = new Date(Number(timestamp)).toISOString();
+    // Timestamp: 8-byte ms since Unix epoch
+    const ts = buf.readBigUInt64BE(offset);
+    record.recorded_at = new Date(Number(ts)).toISOString();
     offset += 8;
 
-    // Priority (1 byte)
-    record.priority = buffer.readUInt8(offset);
+    // Priority: 1 byte
+    record.priority = buf.readUInt8(offset);
     offset += 1;
 
-    // GPS (15 bytes)
-    const gps = this.parseGPSElement(buffer, offset);
+    // GPS element: 15 bytes
+    const gps = this._parseGPS(buf, offset);
     Object.assign(record, gps.data);
-    offset = gps.newOffset;
+    offset = gps.offset;
 
-    // IO
-    const io = this.parseIOElement(buffer, offset, codecID);
+    // IO element: variable length
+    const io = this._parseIO(buf, offset, codecID);
     record.io_elements = io.data;
     record.event_id = io.eventID;
-    offset = io.newOffset;
+    offset = io.offset;
 
-    return { data: record, newOffset: offset };
+    return { data: record, offset };
   }
 
-  static parseGPSElement(buffer, offset) {
-    if (offset + 15 > buffer.length) throw new Error('Short GPS');
+  // ─── PRIVATE: GPS ────────────────────────────────────────────────────────
 
-    const gps = {};
-    gps.longitude = buffer.readInt32BE(offset) / 10000000;
-    offset += 4;
-    gps.latitude = buffer.readInt32BE(offset) / 10000000;
-    offset += 4;
-    gps.altitude = buffer.readInt16BE(offset);
-    offset += 2;
-    gps.angle = buffer.readUInt16BE(offset);
-    offset += 2;
-    gps.satellites = buffer.readUInt8(offset);
-    offset += 1;
-    gps.speed = buffer.readUInt16BE(offset);
-    offset += 2;
-
-    return { data: gps, newOffset: offset };
+  static _parseGPS(buf, offset) {
+    if (offset + 15 > buf.length) throw new Error('Buffer too short for GPS');
+    return {
+      data: {
+        longitude: buf.readInt32BE(offset) / 10_000_000, // 4b
+        latitude: buf.readInt32BE(offset + 4) / 10_000_000, // 4b
+        altitude: buf.readInt16BE(offset + 8),               // 2b
+        angle: buf.readUInt16BE(offset + 10),             // 2b
+        satellites: buf.readUInt8(offset + 12),                // 1b
+        speed: buf.readUInt16BE(offset + 13),             // 2b
+      },
+      offset: offset + 15
+    };
   }
 
-  static parseIOElement(buffer, offset, codecID) {
-    const headerSize = codecID === 0x8E ? 4 : 2;
-    if (offset + headerSize > buffer.length) throw new Error('Short IO Header');
+  // ─── PRIVATE: IO ELEMENT ─────────────────────────────────────────────────
 
-    const eventID = codecID === 0x8E ? buffer.readUInt16BE(offset) : buffer.readUInt8(offset);
-    offset += codecID === 0x8E ? 2 : 1;
+  static _parseIO(buf, offset, codecID) {
+    const is8E = codecID === 0x8E;
+    const hdrSize = is8E ? 4 : 2;
 
-    const totalElements = codecID === 0x8E ? buffer.readUInt16BE(offset) : buffer.readUInt8(offset);
-    offset += codecID === 0x8E ? 2 : 1;
+    if (offset + hdrSize > buf.length) throw new Error('Buffer too short for IO header');
+
+    const eventID = is8E ? buf.readUInt16BE(offset) : buf.readUInt8(offset);
+    offset += is8E ? 2 : 1;
+
+        /* totalElements */ is8E ? buf.readUInt16BE(offset) : buf.readUInt8(offset);
+    offset += is8E ? 2 : 1;
 
     const io = {};
-    const lengths = [1, 2, 4, 8];
-    for (const len of lengths) {
-      const result = this.parseIOElements(buffer, offset, len, codecID);
-      Object.assign(io, result.data);
-      offset = result.newOffset;
+
+    // Fixed-width IO groups: 1, 2, 4, 8 bytes each
+    for (const byteLen of [1, 2, 4, 8]) {
+      const res = this._parseIOGroup(buf, offset, byteLen, is8E);
+      Object.assign(io, res.data);
+      offset = res.offset;
     }
 
-    if (codecID === 0x8E) {
-      const varResult = this.parseVariableIOElements(buffer, offset);
-      Object.assign(io, varResult.data);
-      offset = varResult.newOffset;
+    // Variable-length IO group (Codec 8E only)
+    if (is8E) {
+      const varRes = this._parseIOVarGroup(buf, offset);
+      Object.assign(io, varRes.data);
+      offset = varRes.offset;
     }
 
-    return { data: io, eventID, newOffset: offset };
+    return { data: io, eventID, offset };
   }
 
-  static parseIOElements(buffer, offset, byteLength, codecID) {
+  static _parseIOGroup(buf, offset, byteLen, is8E) {
     const io = {};
-    const countSize = codecID === 0x8E ? 2 : 1;
-    if (offset + countSize > buffer.length) return { data: io, newOffset: offset };
+    const countSize = is8E ? 2 : 1;
+    if (offset + countSize > buf.length) return { data: io, offset };
 
-    const count = codecID === 0x8E ? buffer.readUInt16BE(offset) : buffer.readUInt8(offset);
+    const count = is8E ? buf.readUInt16BE(offset) : buf.readUInt8(offset);
     offset += countSize;
 
+    const idSize = is8E ? 2 : 1;
     for (let i = 0; i < count; i++) {
-      const idSize = codecID === 0x8E ? 2 : 1;
-      if (offset + idSize + byteLength > buffer.length) break;
-
-      const ioID = codecID === 0x8E ? buffer.readUInt16BE(offset) : buffer.readUInt8(offset);
+      if (offset + idSize + byteLen > buf.length) break;
+      const id = is8E ? buf.readUInt16BE(offset) : buf.readUInt8(offset);
       offset += idSize;
 
-      let value;
-      switch (byteLength) {
-        case 1: value = buffer.readUInt8(offset); break;
-        case 2: value = buffer.readUInt16BE(offset); break;
-        case 4: value = buffer.readUInt32BE(offset); break;
-        case 8: value = Number(buffer.readBigUInt64BE(offset)); break;
-      }
-      offset += byteLength;
-      io[`io_${ioID}`] = value;
-    }
+      let val;
+      if (byteLen === 1) val = buf.readUInt8(offset);
+      else if (byteLen === 2) val = buf.readUInt16BE(offset);
+      else if (byteLen === 4) val = buf.readUInt32BE(offset);
+      else val = Number(buf.readBigUInt64BE(offset));
+      offset += byteLen;
 
-    return { data: io, newOffset: offset };
+      io[`io_${id}`] = val;
+    }
+    return { data: io, offset };
   }
 
-  static parseVariableIOElements(buffer, offset) {
+  static _parseIOVarGroup(buf, offset) {
     const io = {};
-    if (offset + 2 > buffer.length) return { data: io, newOffset: offset };
+    if (offset + 2 > buf.length) return { data: io, offset };
 
-    const count = buffer.readUInt16BE(offset);
+    const count = buf.readUInt16BE(offset);
     offset += 2;
 
     for (let i = 0; i < count; i++) {
-      if (offset + 4 > buffer.length) break;
-      const ioID = buffer.readUInt16BE(offset);
-      offset += 2;
-      const length = buffer.readUInt16BE(offset);
-      offset += 2;
-
-      if (offset + length > buffer.length) break;
-      const value = buffer.slice(offset, offset + length).toString('hex');
-      offset += length;
-      io[`io_${ioID}`] = value;
+      if (offset + 4 > buf.length) break;
+      const id = buf.readUInt16BE(offset); offset += 2;
+      const len = buf.readUInt16BE(offset); offset += 2;
+      if (offset + len > buf.length) break;
+      io[`io_${id}`] = buf.slice(offset, offset + len).toString('hex');
+      offset += len;
     }
-
-    return { data: io, newOffset: offset };
+    return { data: io, offset };
   }
 
-  static createACK(numberOfRecords) {
+  // ─── HELPERS ─────────────────────────────────────────────────────────────
+
+  /**
+   * Builds a 4-byte big-endian ACK buffer to confirm N received records.
+   * @param {number} count
+   * @returns {Buffer}
+   */
+  static buildACK(count) {
     const ack = Buffer.alloc(4);
-    ack.writeUInt32BE(numberOfRecords, 0);
+    ack.writeUInt32BE(count, 0);
     return ack;
   }
 }

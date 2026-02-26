@@ -1,124 +1,129 @@
+'use strict';
 /**
- * Data Router - Routes telemetry data to client's Supabase database
+ * ZAMEX Telematics - Data Router
+ *
+ * Responsibilities:
+ *   1. Validate a GPS device IMEI against the master Supabase view
+ *      `vista_maestra_dispositivos` and return its client config.
+ *   2. Insert parsed telemetry records into the client's own Supabase
+ *      `telemetria` table.
+ *   3. Cache device credentials in memory for 5 minutes to avoid
+ *      hammering the master DB on every AVL packet.
  */
 
 const { createClient } = require('@supabase/supabase-js');
 
 class DataRouter {
-    constructor(masterSupabase) {
-        this.masterSupabase = masterSupabase;
-        this.clientCache = new Map(); // Cache client credentials by IMEI
-    }
 
     /**
-     * Validate device and get client credentials from vista_maestra_dispositivos
-     * @param {string} imei - Device IMEI
-     * @returns {Promise<Object|null>} - Client configuration or null if not found
+     * @param {import('@supabase/supabase-js').SupabaseClient} masterSupabase
+     */
+    constructor(masterSupabase) {
+        this.master = masterSupabase;
+        /** @type {Map<string, {imei, unidad, cliente, supabaseUrl, supabaseKey}>} */
+        this.cache = new Map();
+    }
+
+    // ─── DEVICE VALIDATION ───────────────────────────────────────────────────
+
+    /**
+     * Looks up a device by IMEI in the master DB.
+     * Returns a client config object on success, or null if not found / error.
+     *
+     * @param {string} imei
+     * @returns {Promise<{imei, unidad, cliente, supabaseUrl, supabaseKey}|null>}
      */
     async validateDevice(imei) {
-        try {
-            // Check cache first
-            if (this.clientCache.has(imei)) {
-                console.log(`[Router] Using cached credentials for IMEI: ${imei}`);
-                return this.clientCache.get(imei);
-            }
+        // ── Cache hit ──────────────────────────────────────────────────────
+        if (this.cache.has(imei)) {
+            console.log(`[Router] Using cached credentials for IMEI: ${imei}`);
+            return this.cache.get(imei);
+        }
 
-            // Query master database
-            const { data, error } = await this.masterSupabase
+        // ── DB lookup ──────────────────────────────────────────────────────
+        try {
+            const { data, error } = await this.master
                 .from('vista_maestra_dispositivos')
-                .select('*')
+                .select('imei, unidad, cliente, supabase_url_destino, supabase_service_key_destino')
                 .eq('imei', imei)
                 .single();
 
             if (error) {
-                console.error(`[Router] Error querying master DB for IMEI ${imei}:`, error.message);
+                console.error(`[Router] DB error for IMEI ${imei}:`, error.message);
                 return null;
             }
-
             if (!data) {
-                console.warn(`[Router] Device not found in master DB: ${imei}`);
+                console.warn(`[Router] Device not found: ${imei}`);
                 return null;
             }
-
-            // Validate client has Supabase configuration
             if (!data.supabase_url_destino || !data.supabase_service_key_destino) {
-                console.warn(`[Router] Client "${data.cliente}" has no Supabase configuration`);
+                console.warn(`[Router] Client "${data.cliente}" has no Supabase config`);
                 return null;
             }
 
-            const clientConfig = {
+            const config = {
                 imei: data.imei,
                 unidad: data.unidad,
                 cliente: data.cliente,
                 supabaseUrl: data.supabase_url_destino,
-                supabaseKey: data.supabase_service_key_destino
+                supabaseKey: data.supabase_service_key_destino,
             };
 
             // Cache for 5 minutes
-            this.clientCache.set(imei, clientConfig);
-            setTimeout(() => this.clientCache.delete(imei), 5 * 60 * 1000);
+            this.cache.set(imei, config);
+            setTimeout(() => this.cache.delete(imei), 5 * 60 * 1000);
 
             console.log(`[Router] Device validated: ${imei} -> Client: ${data.cliente}`);
-            return clientConfig;
-        } catch (error) {
-            console.error('[Router] Unexpected error in validateDevice:', error);
+            return config;
+
+        } catch (e) {
+            console.error('[Router] Unexpected error in validateDevice:', e.message);
             return null;
         }
     }
 
-    /**
-     * Route telemetry records to client's Supabase
-     * @param {Object} clientConfig - Client configuration from validateDevice
-     * @param {Array} records - Parsed telemetry records
-     * @returns {Promise<Boolean>} - Success status
-     */
-    async routeData(clientConfig, records) {
-        try {
-            // Create Supabase client for this specific customer
-            const clientSupabase = createClient(
-                clientConfig.supabaseUrl,
-                clientConfig.supabaseKey
-            );
+    // ─── DATA INSERTION ──────────────────────────────────────────────────────
 
-            // Transform records to match client's telemetria table schema
-            const telemetriaRecords = records.map(record => ({
-                imei: clientConfig.imei,
-                recorded_at: record.recorded_at,
-                latitude: record.latitude,
-                longitude: record.longitude,
-                speed: record.speed,
-                angle: record.angle,
-                satellites: record.satellites,
-                altitude: record.altitude,
-                event_id: record.event_id,
-                priority: record.priority,
-                io_elements: record.io_elements
+    /**
+     * Inserts an array of parsed AVL records into the client's Supabase.
+     *
+     * @param {{ imei, unidad, cliente, supabaseUrl, supabaseKey }} config
+     * @param {Array<Object>} records  - Parsed records from TeltonikaParser
+     * @returns {Promise<boolean>}
+     */
+    async routeData(config, records) {
+        if (!records || records.length === 0) return false;
+        try {
+            const supabase = createClient(config.supabaseUrl, config.supabaseKey);
+
+            const rows = records.map(r => ({
+                imei: config.imei,
+                recorded_at: r.recorded_at,
+                latitude: r.latitude,
+                longitude: r.longitude,
+                speed: r.speed,
+                angle: r.angle,
+                satellites: r.satellites,
+                altitude: r.altitude,
+                event_id: r.event_id,
+                priority: r.priority,
+                io_elements: r.io_elements,
             }));
 
-            // Insert into client's telemetria table
-            const { data, error } = await clientSupabase
-                .from('telemetria')
-                .insert(telemetriaRecords);
+            const { error } = await supabase.from('telemetria').insert(rows);
 
             if (error) {
-                console.error(`[Router] Error inserting data for client ${clientConfig.cliente}:`, error.message);
+                console.error(`[Router] Insert error for ${config.cliente}:`, error.message);
                 return false;
             }
 
-            console.log(`[Router] ✓ Inserted ${telemetriaRecords.length} records for ${clientConfig.cliente} (IMEI: ${clientConfig.imei})`);
+            console.log(`[Router] ✓ Inserted ${rows.length} records for ${config.cliente} (IMEI: ${config.imei})`);
             return true;
-        } catch (error) {
-            console.error('[Router] Unexpected error in routeData:', error);
+
+        } catch (e) {
+            console.error('[Router] Unexpected error in routeData:', e.message);
             return false;
         }
-    }
-
-    /**
-     * Clear all cached credentials
-     */
-    clearCache() {
-        this.clientCache.clear();
-        console.log('[Router] Cache cleared');
     }
 }
 
