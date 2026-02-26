@@ -9,7 +9,7 @@ const { createClient } = require('@supabase/supabase-js');
 const TeltonikaParser = require('./parser');
 const DataRouter = require('./router');
 
-const PORT = 5027; // FIJAMOS EL PUERTO SOLICITADO POR EL GPS
+const PORT = process.env.PORT || 5027; // USAMOS EL PUERTO DINÁMICO DE RAILWAY
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
@@ -115,8 +115,8 @@ const server = net.createServer((socket) => {
 
 server.listen(PORT, '0.0.0.0', () => {
     console.log('═══════════════════════════════════════════════════');
-    console.log('  ZAMEX TELEMATICS - ULTRA-LISTENER V3.1');
-    console.log(`  🚀 LUCHANDO EN PUERTO: ${PORT}`);
+    console.log('  ZAMEX TELEMATICS - ULTRA-LISTENER V4');
+    console.log(`  🚀 ESCUCHANDO EN PUERTO INTERNO: ${PORT}`);
     console.log('═══════════════════════════════════════════════════\n');
 });
 
