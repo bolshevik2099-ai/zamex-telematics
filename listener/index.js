@@ -1,6 +1,10 @@
 const net = require('net');
 
 const server = net.createServer((socket) => {
+    // ESTAS LÍNEAS SON CLAVE PARA RAILWAY
+    socket.setNoDelay(true); // Desactiva el retraso de paquetes (Nagle's Algorithm)
+    socket.setKeepAlive(true, 10000); // Mantiene el socket despierto 10 segundos
+
     console.log(`[TCP] 📡 Conexión desde: ${socket.remoteAddress}`);
 
     socket.on('data', (data) => {
