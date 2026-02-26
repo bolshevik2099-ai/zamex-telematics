@@ -105,9 +105,11 @@ function handleTeltonikaConnection(socket, initialChunk, clientAddress) {
                     const avlData = TeltonikaParser.parseAVLData(packet);
 
                     if (avlData && avlData.records && avlData.records.length > 0) {
-                        const recordCount = avlData.numberOfRecords || avlData.records.length;
+                        // 🚨 VITAL: Siempre confirmar a Teltonika la misma cantidad de registros que ellos reportan en su Header (originalCount). 
+                        // Si confirmamos menos porque el parser purgó uno dañado, Teltonika asume pérdida de datos y repite todo el paquete.
+                        const recordCount = avlData.originalCount || avlData.records.length;
 
-                        // 🚨 VITAL: ACK súper rápido
+                        // 🚨 VITAL: ACK súper rápido (TCP Puro / 4 bytes exactos)
                         const ack = Buffer.alloc(4);
                         ack.writeUInt32BE(recordCount, 0);
                         socket.write(ack);
