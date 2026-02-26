@@ -19,20 +19,35 @@ const server = net.createServer((socket) => {
 
             // 2. Manejo de Datos (Payload)
             if (data.length > 20) {
-                console.log(`[TCP] 📥 Recibidos ${data.length} bytes de datos crudos`);
-                // AQUÍ ESTÁ LA MAGIA PARA FORZAR EL BORRADO DEL GPS SIN CRASHEAR
-                const numRecords = data[9]; // El protocolo Teltonika trae el conteo aquí
+                console.log(`[TCP] 📥 Recibidos ${data.length} bytes. Procesando...`);
+
+                // 1. EXTRAER EL NÚMERO DE REGISTROS (Está en el byte índice 9 en Codec 8)
+                const numRecords = data[9];
+
+                // 2. MANDAR EL ACK DE INMEDIATO (4 bytes con el número de registros)
                 const ack = Buffer.alloc(4);
                 ack.writeUInt32BE(numRecords, 0);
 
                 // MANDAR ACK EN BINARIO Y CERRAR EL SOCKET INMEDIATAMENTE
                 socket.write(ack, 'binary', () => {
-                    console.log(`[TCP] ✓ ACK ${numRecords} enviado en binario. CERRANDO SOCKET.`);
-                    socket.end(); // Fuerza al GPS a entender que la transacción terminó con éxito
+                    console.log(`[TCP] ✓ ACK ${numRecords} enviado con éxito. CERRANDO SOCKET.`);
+                    socket.end(); // Fuerza al GPS a entender que la transacción terminó
+                });
+
+                // 3. SEPARAR EL PROCESAMIENTO
+                // Aquí es donde el agente la está regando. 
+                // Que use un setImmediate para que el socket no se bloquee.
+                setImmediate(() => {
+                    try {
+                        console.log("Procesando datos en segundo plano para no trabar el socket...");
+                        // Aquí va la lógica de Supabase envuelta en OTRO try-catch
+                    } catch (e) {
+                        console.error("[CRÍTICO] Error en el worker asíncrono:", e.message);
+                    }
                 });
             }
         } catch (err) {
-            console.error('[ERROR] Falló el procesamiento pero el servidor SIGUE VIVO:', err.message);
+            console.error("[CRÍTICO] El procesador falló pero NO mataremos el servidor:", err.message);
         }
     });
 
