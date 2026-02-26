@@ -1,68 +1,147 @@
+'use strict';
+require('dotenv').config();
 const net = require('net');
+const TeltonikaParser = require('./parser');
+const DataRouter = require('./router');
+const { createClient } = require('@supabase/supabase-js');
+
+const PORT = process.env.PORT || 5027;
+const masterSupabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+const router = new DataRouter(masterSupabase);
 
 const server = net.createServer((socket) => {
-    // ESTAS LÍNEAS SON CLAVE PARA RAILWAY
-    socket.setNoDelay(true); // Desactiva el retraso de paquetes (Nagle's Algorithm)
-    socket.setKeepAlive(true, 10000); // Mantiene el socket despierto 10 segundos
+    socket.setNoDelay(true);
+    socket.setKeepAlive(true, 30000); // 30s
+    socket.setTimeout(60000); // 1m
 
-    console.log(`[TCP] 📡 Conexión desde: ${socket.remoteAddress}`);
+    const addr = `${socket.remoteAddress}:${socket.remotePort}`;
+    console.log(`[TCP] 📡 Nueva conexión desde: ${addr}`);
 
-    socket.on('data', (data) => {
+    let buf = Buffer.alloc(0);
+    let imei = null;
+    let clientCfgPromise = null;
+
+    socket.on('data', (chunk) => {
         try {
-            // 1. Manejo de Handshake (IMEI) - El paquete Teltonika mide EXACTAMENTE 17 bytes
-            if (data.length === 17) {
-                // MANDAR EL 0x01 SIN NADA MÁS ALREDEDOR
-                socket.write(Buffer.from([0x01]), 'binary');
-                console.log(`[TCP] 📱 IMEI RECIBIDO Y 0x01 ENVIADO`);
-                return;
+            // CONCATENAMOS LOS CHUNKS
+            // Esto es vital en redes celulares GPRS. El paquete AVL llega en pedazos.
+            // El código anterior lo ignoraba si data.length no era > 20 en ESE instante exacto.
+            buf = Buffer.concat([buf, chunk]);
+
+            // 1. MANEJO DE HANDSHAKE (IMEI)
+            if (!imei) {
+                // Teltonika IMEI = EXACTAMENTE 17 bytes iniciales
+                if (buf.length >= 17) {
+                    const handshakeChunk = buf.slice(0, 17);
+
+                    // Asegurarnos que sean 0x00 0x0F al inicio
+                    if (handshakeChunk[0] === 0x00 && handshakeChunk[1] === 0x0F) {
+                        const parsedImei = handshakeChunk.toString('ascii', 2, 17);
+                        imei = parsedImei;
+                        console.log(`[TCP] 📱 IMEI RECIBIDO: ${imei}`);
+
+                        // EL 0x01 SE MANDA LIMPIO, EN BUFFER, SIN NADA QUE ENSUCIE
+                        socket.write(Buffer.from([0x01]));
+                        console.log(`[TCP] ✅ Handshake 0x01 enviado`);
+
+                        // Validar dispositivo en DB en segundo plano. Cero espera para el GPS.
+                        clientCfgPromise = router.validateDevice(imei).catch(e => {
+                            console.error(`[DB] Falló validación IMEI:`, e.message);
+                            return null;
+                        });
+
+                        // Sacamos el paquete de 17 bytes de nuestro acumulador
+                        buf = buf.slice(17);
+                    } else {
+                        // Tráfico basura (ej. HTTP Health Check de Railway o scanners)
+                        socket.end();
+                        return;
+                    }
+                } else {
+                    // Ha llegado menos de 17 bytes (ej: 8 bytes). 
+                    // No hacemos nada, esperamos a que el siguiente chunk complete los 17 (GPRS latency).
+                    return;
+                }
             }
 
-            // 2. Manejo de Datos (Payload)
-            if (data.length > 20) {
-                console.log(`[TCP] 📥 Recibidos ${data.length} bytes. Procesando...`);
+            // Si llegamos hasta aquí, el IMEI está verificado, y buf tiene lo que queda.
+            // 2. MANEJO DE PAYLOADS AVL
+            while (buf.length >= 12) {
+                // El preámbulo siempre es 4 bytes de ceros
+                if (buf.readUInt32BE(0) !== 0) {
+                    // Desfase en el protocolo, borramos 1 byte para buscar resincronización
+                    buf = buf.slice(1);
+                    continue;
+                }
 
-                // 1. EXTRAER EL NÚMERO DE REGISTROS (Está en el byte índice 9 en Codec 8)
-                const numRecords = data[9];
+                const dataLength = buf.readUInt32BE(4);
+                const totalPacketLength = dataLength + 12; // Preámbulo(4) + Length(4) + Data(N) + CRC(4)
 
-                // 2. MANDAR EL ACK DE INMEDIATO (4 bytes con el número de registros)
-                const ack = Buffer.alloc(4);
-                ack.writeUInt32BE(numRecords, 0);
+                // Este era el GRAVE ERROR del código de emergencia.
+                // Si llegaban 500 bytes (de 1263 totales), intentaba parsearlo y fallaba, 
+                // o se saltaba el código (data[9]). GPRS y TCP fragmentan los paquetes al azar.
+                // AQUÍ OBLIGAMOS AL SISTEMA A ESPERAR HASTA TENER EL PAQUETE COMPLETO:
+                if (buf.length < totalPacketLength) {
+                    return; // Retorna y espera más 'data' events de TCP
+                }
 
-                // MANDAR ACK EN BINARIO Y DARLE TIEMPO AL GPS PARA RESPIRAR
-                socket.write(ack, 'binary', () => {
-                    console.log(`[TCP] ✓ ACK ${numRecords} enviado con éxito. Esperando 500ms para cerrar...`);
-                    // NO CERRAR INMEDIATAMENTE - Dar tiempo al GPS de procesar el ACK
-                    setTimeout(() => {
-                        socket.end(); // Fuerza al GPS a entender que la transacción terminó
-                        console.log(`[TCP] 🔌 Socket cerrado tras 500ms de gracia.`);
-                    }, 500);
-                });
+                // EXTRAEMOS EL PAQUETE COMPLETO DE LOS DATOS QUE LLEGARON
+                const packet = buf.slice(0, totalPacketLength);
+                buf = buf.slice(totalPacketLength); // El resto (otro paquete AVL) se queda en espera
 
-                // 3. SEPARAR EL PROCESAMIENTO
-                // Aquí es donde el agente la está regando. 
-                // Que use un setImmediate para que el socket no se bloquee.
-                setImmediate(() => {
-                    try {
-                        console.log("Procesando datos en segundo plano para no trabar el socket...");
-                        // Aquí va la lógica de Supabase envuelta en OTRO try-catch
-                    } catch (e) {
-                        console.error("[CRÍTICO] Error en el worker asíncrono:", e.message);
-                    }
-                });
+                console.log(`[TCP] 📥 Recepción de paquete completo AVL: ${totalPacketLength} bytes verdaderos.`);
+
+                // USAMOS TU PARSER ESTABLE PARA ENCONTRAR EL NUMERO REAL EXACTO (Sin importar Codec8 o 8E)
+                const avl = TeltonikaParser.parseAVLData(packet);
+
+                if (avl && avl.records.length > 0) {
+                    // 3. MANDAR ACK INMEDIATO DE 4 BYTES
+                    const ack = TeltonikaParser.buildACK(avl.originalCount);
+                    socket.write(ack);
+                    console.log(`[TCP] ✓ ACK ${avl.originalCount} ENVIADO AL GPS INSTANTÁNEAMENTE.`);
+
+                    // IMPORTANTE: NO CERRAREMOS EL SOCKET (socket.end).
+                    // El GPS de Teltonika necesita recibir ese ACK y ÉL de forma nativa cortará 
+                    // la sesión cuando haya vaciado toda su memoria. Cortarlo nosotros lo obliga a reintentar.
+
+                    // 4. AISLAMIENTO BASE DE DATOS (Background Thread)
+                    const recordsToSave = avl.records;
+                    setImmediate(() => {
+                        console.log(`[PROCESO] ⏳ Insertando ${recordsToSave.length} registros en Supabase...`);
+                        if (clientCfgPromise) {
+                            clientCfgPromise.then(cfg => {
+                                if (cfg) {
+                                    return router.routeData(cfg, recordsToSave);
+                                } else {
+                                    console.log(`[DB] No hay configuración de destino para ${imei}. Datos omitidos.`);
+                                }
+                            }).catch(err => console.error(`[CRÍTICO DB] No pudimos sincronizar GPS con Supabase:`, err.message));
+                        }
+                    });
+                } else {
+                    console.log(`[TCP] ⚠️ El paquete AVL no contenía registros legibles (Pings vacíos). ACK 0.`);
+                    socket.write(TeltonikaParser.buildACK(0));
+                }
             }
         } catch (err) {
-            console.error("[CRÍTICO] El procesador falló pero NO mataremos el servidor:", err.message);
+            console.error('[CRÍTICO TCP] Fallo letal pero servidor aislado:', err.message);
         }
     });
 
-    socket.on('error', (err) => console.log(`[Socket Error] ${err.message}`));
-    socket.on('close', () => console.log('[TCP] 🔌 Conexión cerrada'));
+    socket.on('error', (err) => {
+        if (err.code !== 'ECONNRESET') console.log(`[Socket Error] ${addr}: ${err.message}`);
+    });
+
+    socket.on('close', () => console.log(`[TCP] 🔌 Cliente GPS cerró la tubería limpiamente.`));
+
+    socket.on('timeout', () => {
+        console.log(`[TCP] ⏱️ Timeout interno GPS, cerrando socket atascado.`);
+        socket.destroy();
+    });
 });
 
-// ESCUDO TOTAL: Esto evita el SIGTERM por errores de código
-process.on('uncaughtException', (err) => console.error('[ALERTA CRÍTICA] Error no capturado:', err));
+process.on('uncaughtException', (err) => console.error('[ALERTA GLOBAL CRÍTICA]', err));
 
-const PORT = process.env.PORT || 5027;
 server.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 ZAMEXIA EMERGENCY LISTENER activo en puerto ${PORT}`);
+    console.log(`🚀 ZAMEXIA TELTONIKA V11 (BUFFER ACCUMULATOR & NON-DROP) activo en puerto ${PORT}`);
 });
