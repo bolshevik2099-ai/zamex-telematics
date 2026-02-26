@@ -95,10 +95,11 @@ function handleTeltonikaConnection(socket, initialChunk, clientAddress) {
                     const totalLength = dataLength + 12;
 
                     if (dataBuffer.length < totalLength) {
-                        // Aún no llega el paquete completo
+                        console.log(`[Server TCP] ⏳ Paquete parcial detectado en memoria (${dataBuffer.length} / ${totalLength} bytes). Esperando más chunks...`);
                         break;
                     }
 
+                    console.log(`[Server TCP] 📦 Paquete completo en memoria (${totalLength} bytes). Extrayendo...`);
                     const packet = dataBuffer.slice(0, totalLength);
                     dataBuffer = dataBuffer.slice(totalLength);
 
@@ -122,7 +123,7 @@ function handleTeltonikaConnection(socket, initialChunk, clientAddress) {
                             console.error("[Router Supabase] ❌ Error de BD:", e.message)
                         );
                     } else {
-                        console.warn(`[Parser TCP] ⚠️ Datos inválidos de ${deviceIMEI}, ACK de 0 enviado.`);
+                        console.warn(`[Parser TCP] ⚠️ Datos extraídos están vacíos o corruptos para ${deviceIMEI}. (avlData: ${avlData ? 'Válido' : 'Nulo'})`);
                         const ack = Buffer.alloc(4);
                         ack.writeUInt32BE(0, 0);
                         socket.write(ack);
