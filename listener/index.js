@@ -9,8 +9,8 @@ const server = net.createServer((socket) => {
 
     socket.on('data', (data) => {
         try {
-            // 1. Manejo de Handshake (IMEI)
-            if (data.length > 10 && data.length < 20) {
+            // 1. Manejo de Handshake (IMEI) - El paquete Teltonika mide EXACTAMENTE 17 bytes
+            if (data.length === 17) {
                 // MANDAR EL 0x01 SIN NADA MÁS ALREDEDOR
                 socket.write(Buffer.from([0x01]), 'binary');
                 console.log(`[TCP] 📱 IMEI RECIBIDO Y 0x01 ENVIADO`);
