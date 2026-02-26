@@ -144,10 +144,10 @@ function handleTeltonikaConnection(socket, initialChunk, clientAddress) {
         }
     };
 
-    // Procesar cualquier dato que haya entrado inicialmente
-    pump();
-
-    // Eventos de red continuos
+    // ⚡ CRÍTICO: Registrar PRIMERO el listener de datos ANTES de llamar a pump()
+    // Esto evita la Race Condition: si pump() hace un 'await' y el GPS manda
+    // datos en ese microinstante, los bytes quedarían en el vacío porque el
+    // listener aún no existía. Ahora el buffer los captura siempre.
     socket.on('data', (chunk) => {
         console.log(`[Server TCP] 📥 Recibidos ${chunk.length} bytes adicionales de ${deviceIMEI || clientAddress}`);
         console.log(`[Server TCP] 🔍 Raw Hex Adicional: ${chunk.toString('hex').substring(0, 100)}...`);
@@ -163,6 +163,9 @@ function handleTeltonikaConnection(socket, initialChunk, clientAddress) {
 
     socket.on('error', (e) => console.log(`[TCP Error] 🔌 ${deviceIMEI || clientAddress} -> ${e.message}`));
     socket.on('close', () => console.log(`[TCP Close] 🔌 Desconectado: ${deviceIMEI || clientAddress}`));
+
+    // ⚡ Ahora sí encendemos la bomba con el chunk inicial
+    pump();
 }
 
 // ==========================================
