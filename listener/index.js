@@ -11,10 +11,9 @@ const server = net.createServer((socket) => {
         try {
             // 1. Manejo de Handshake (IMEI)
             if (data.length > 10 && data.length < 20) {
-                const imei = data.toString().replace(/[^0-9]/g, '');
-                console.log(`[TCP] 📱 IMEI: ${imei}`);
-                socket.write(Buffer.from([0x01])); // El 0x01 binario que el GPS ama
-                console.log(`[TCP] ✅ Handshake enviado`);
+                // MANDAR EL 0x01 SIN NADA MÁS ALREDEDOR
+                socket.write(Buffer.from([0x01]), 'binary');
+                console.log(`[TCP] 📱 IMEI RECIBIDO Y 0x01 ENVIADO`);
                 return;
             }
 
