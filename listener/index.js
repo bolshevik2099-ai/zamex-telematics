@@ -1,6 +1,6 @@
 /**
- * Zamex Telematics - Teltonika TCP ULTRA-LISTENER V6 (MULTIPLEX)
- * VERSION: Smart Port Multiplexing (HTTP + TCP on the same port)
+ * Zamex Telematics - Teltonika TCP ULTRA-LISTENER V7 (ULTRA-STREAM)
+ * VERSION: Zero-Latency Data Pump & Socket Pause/Resume
  */
 
 require('dotenv').config();
@@ -22,176 +22,147 @@ const masterSupabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 const router = new DataRouter(masterSupabase);
 
 // ==========================================
-// FUNCIÓN PRINCIPAL DE PROCESAMIENTO GPS
+// FUNCIÓN BOMBEO DE FLUJO DE DATOS (ZERO LATENCY)
 // ==========================================
 function handleTeltonikaConnection(socket, initialChunk, clientAddress) {
     let deviceIMEI = null;
     let clientConfig = null;
-    let dataBuffer = Buffer.from(initialChunk); // Iniciar con el chunk que ya leímos
-    let isProcessing = false;
+    let dataBuffer = Buffer.alloc(0);
 
-    // Log del primer contacto
-    console.log(`[Server TCP] 📥 Recibidos ${initialChunk.length} bytes (Teltonika Payload) de ${clientAddress}`);
-
-    const processBuffer = async () => {
-        if (isProcessing) return;
-        isProcessing = true;
-
+    const pump = async () => {
         try {
             while (dataBuffer.length >= 15) {
                 if (!deviceIMEI) {
-                    if (dataBuffer.length < 17) break; // Esperar 17 bytes
+                    if (dataBuffer.length < 17) break; // Esperar 17 bytes (IMEI Packet)
 
                     const imeiStr = TeltonikaParser.parseIMEI(dataBuffer);
 
                     if (!imeiStr) {
-                        console.error(`[Server TCP] ❌ IMEI no reconocido de ${clientAddress}. Packet: ${dataBuffer.slice(0, 17).toString('hex')}`);
-                        dataBuffer = Buffer.alloc(0);
                         socket.write(Buffer.from([0x00]));
                         socket.destroy();
-                        break;
+                        return; // Fin del flujo
                     }
 
                     deviceIMEI = imeiStr;
                     console.log(`[Server TCP] 📱 IMEI Identificado: ${deviceIMEI}`);
 
-                    // 🚨 VITAL: Responder ACK 0x01 INMEDIATAMENTE para que el GPS no cierre la sesión por timeout!
+                    // 🚨 VITAL: Enviar ACK para el IMEI Instantáneamente
                     socket.write(Buffer.from([0x01]));
-                    console.log(`[Server TCP] ✅ Handshake enviado al momento para ${deviceIMEI}`);
 
+                    // 🚨 VITAL: Pausamos el socket para no cruzar cables mientras valida en BD
+                    socket.pause();
                     clientConfig = await router.validateDevice(deviceIMEI);
+                    socket.resume(); // Retoma lectura inmediata
+
                     if (!clientConfig) {
-                        console.warn(`[Server TCP] ⚠️  Rechazado (No autorizado): ${deviceIMEI}`);
-                        // Ya mandamos 0x01, pero como no está autorizado, cortamos
+                        console.warn(`[Server TCP] ⚠️ Rechazado: ${deviceIMEI}`);
                         socket.destroy();
-                        break;
+                        return;
                     }
 
-                    console.log(`[Server TCP] 🔐 Validación Supabase superada para ${deviceIMEI}`);
+                    // Consumimos el IMEI de la memoria y seguimos el while para el siguiente payload
                     dataBuffer = dataBuffer.slice(17);
                 } else {
                     // Datos AVL
                     if (dataBuffer.length < 12) break;
 
-                    try {
-                        const preamble = dataBuffer.readUInt32BE(0);
-                        if (preamble !== 0) {
-                            console.warn(`[Server TCP] 🔄 Resyncing buffer for ${deviceIMEI}...`);
-                            let syncPos = -1;
-                            for (let i = 1; i <= dataBuffer.length - 4; i++) {
-                                if (dataBuffer.readUInt32BE(i) === 0) {
-                                    syncPos = i; break;
-                                }
-                            }
-                            if (syncPos !== -1) {
-                                dataBuffer = dataBuffer.slice(syncPos);
-                                continue;
-                            } else {
-                                dataBuffer = Buffer.alloc(0);
-                                break;
+                    const preamble = dataBuffer.readUInt32BE(0);
+                    if (preamble !== 0) {
+                        // Limpieza por ruido en la red
+                        let syncPos = -1;
+                        for (let i = 1; i <= dataBuffer.length - 4; i++) {
+                            if (dataBuffer.readUInt32BE(i) === 0) {
+                                syncPos = i; break;
                             }
                         }
-
-                        const dataLength = dataBuffer.readUInt32BE(4);
-                        const totalLength = dataLength + 12;
-
-                        if (dataBuffer.length < totalLength) {
-                            console.log(`[Server TCP] ⏳ Paquete parcial (${dataBuffer.length}/${totalLength}). Esperando resto...`);
-                            break; // Salimos sin borrar el buffer, para esperar el resto
-                        }
-
-                        // Extraer paquete exacto
-                        const packet = dataBuffer.slice(0, totalLength);
-                        dataBuffer = dataBuffer.slice(totalLength); // Solo removemos lo procesado
-
-                        const avlData = TeltonikaParser.parseAVLData(packet);
-
-                        if (avlData && avlData.records && avlData.records.length > 0) {
-                            const recordCount = avlData.numberOfRecords || avlData.records.length;
-                            console.log(`[Server TCP] 📊 Payload válido de ${deviceIMEI}: ${recordCount} registros`);
-
-                            // 🚨 VITAL: Enviar ACK INMEDIATAMENTE para que el GPS deje de re-transmitir el mismo paquete
-                            const ack = Buffer.alloc(4);
-                            ack.writeUInt32BE(recordCount, 0);
-                            socket.write(ack);
-                            console.log(`[Server TCP] ✓ ACK ${recordCount} enviado al instante para ${deviceIMEI}`);
-
-                            // Luego guardamos en Supabase en segundo plano sin hacer "await" que congele la conexión
-                            router.routeData(clientConfig, avlData.records).then(() => {
-                                console.log(`[Router Supabase] 💾 Confirmada inserción de ${recordCount} registros de ${deviceIMEI}`);
-                            }).catch(e =>
-                                console.error("[Router Supabase] ❌ Error de Base de Datos:", e.message)
-                            );
+                        if (syncPos !== -1) {
+                            dataBuffer = dataBuffer.slice(syncPos);
+                            continue;
                         } else {
-                            console.warn(`[Parser TCP] ⚠️ Datos inválidos de ${deviceIMEI}. Saltando.`);
-                            const ack = Buffer.alloc(4);
-                            ack.writeUInt32BE(0, 0);
-                            socket.write(ack);
+                            dataBuffer = Buffer.alloc(0);
+                            break;
                         }
-                    } catch (e) {
-                        console.error("[Parser TCP] ⚠️ Error leyendo paquete TCP. Corrupción detectada:", e.message);
-                        dataBuffer = Buffer.alloc(0);
-                        break;
                     }
 
+                    const dataLength = dataBuffer.readUInt32BE(4);
+                    const totalLength = dataLength + 12;
+
+                    // Escudo Anti-Desfragmentación (Paquete incompleto)
+                    if (dataBuffer.length < totalLength) break;
+
+                    // 🚨 EXTRACCIÓN QUIRÚRGICA: Sacamos exactamente 1 paquete del Buffer
+                    const packet = dataBuffer.slice(0, totalLength);
+                    dataBuffer = dataBuffer.slice(totalLength);
+
+                    const avlData = TeltonikaParser.parseAVLData(packet);
+
+                    if (avlData && avlData.records && avlData.records.length > 0) {
+                        const recordCount = avlData.numberOfRecords || avlData.records.length;
+
+                        // 🚨 VITAL V6.4: Enviar ACK a la velocidad de la luz
+                        const ack = Buffer.alloc(4);
+                        ack.writeUInt32BE(recordCount, 0);
+                        socket.write(ack);
+                        console.log(`[Server TCP] ✓ ACK ${recordCount} enviado al instante para ${deviceIMEI}`);
+
+                        // 🚨 Inserción Fire-and-Forget a Supabase, NO bloquea el socket de red
+                        router.routeData(clientConfig, avlData.records).catch(e =>
+                            console.error("[Router Supabase] ❌ Error de Base de Datos:", e.message)
+                        );
+                    } else {
+                        const ack = Buffer.alloc(4);
+                        ack.writeUInt32BE(0, 0);
+                        socket.write(ack);
+                    }
                 }
             }
         } catch (err) {
             console.error(`[Server TCP] ❌ Error general (${deviceIMEI}):`, err.message);
             dataBuffer = Buffer.alloc(0);
-        } finally {
-            isProcessing = false;
         }
     };
 
-    // Procesar el chunk inicial inmediatamente
-    processBuffer();
-
-    // Escuchar el resto de chunks
-    socket.on('data', async (chunk) => {
-        console.log(`[Server TCP] 📥 Recibidos ${chunk.length} bytes adicionales de ${deviceIMEI || clientAddress}`);
-        if (dataBuffer.length > 20000) dataBuffer = Buffer.alloc(0);
+    // 🚨 VITAL: EventDriven puro. En cuanto llega un byte, se concatena y se enciende la bomba de procesamiento
+    socket.on('data', (chunk) => {
+        if (dataBuffer.length > 20000) dataBuffer = Buffer.alloc(0); // Escudo de saturación extrema
         dataBuffer = Buffer.concat([dataBuffer, chunk]);
-        processBuffer();
+        pump();
     });
 
     socket.on('error', (e) => console.log(`[TCP Error] 🔌 ${deviceIMEI || clientAddress} -> ${e.message}`));
     socket.on('close', () => console.log(`[TCP Close] 🔌 Desconectado: ${deviceIMEI || clientAddress}`));
+
+    // Inyectar el chunk inicial del Multiplexador para que encienda la bomba la primera vez
+    dataBuffer = Buffer.concat([dataBuffer, initialChunk]);
+    pump();
 }
 
 // ==========================================
-// SERVIDOR MULTIPLEX (Escucha TODO en un solo puerto)
+// SERVIDOR MULTIPLEX (HTTP + TCP)
 // ==========================================
 const server = net.createServer((socket) => {
-    // 🚨 VITAL: Desactivar Algoritmo de Nagle. Sin esto, Node.js acumula el byte de Handshake 0x01 
-    // y no lo envía a la red hasta que el GPS hace timeout y corta la conexión.
+    // 🚨 VITAL: Desactivar Algoritmo Nagle para que los ACK salgan 1 byte a la vez sin demoras
     socket.setNoDelay(true);
     socket.setKeepAlive(true, 60000);
 
     const clientAddress = `${socket.remoteAddress}:${socket.remotePort}`;
     console.log(`\n[Multiplex] 📡 Nueva conexión en puerta: ${clientAddress}`);
 
-    // Usamos 'once' para inspeccionar SOLO el primer paquete de datos
     socket.once('data', (chunk) => {
         if (chunk.length === 0) return;
 
-        // Inspeccionar el primer byte del paquete
         const firstByte = chunk[0];
-
-        // HTTP: Empieza con letras legibles (G para GET, P para POST, etc.)
-        // Teltonika: Empieza con 0x00 (00 0F para IMEI, 00 00 00 00 para datos)
-        const isHTTP = firstByte >= 0x41 && firstByte <= 0x5A; // ASCII 'A' a 'Z'
+        const isHTTP = firstByte >= 0x41 && firstByte <= 0x5A; // ASCII 'A' a 'Z' (GET, POST, etc)
 
         if (isHTTP) {
-            console.log(`[Health Check] 🟢 Petición HTTP detectada de ${clientAddress}. Respondiendo 200 OK.`);
-            const response = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nConnection: close\r\n\r\nZamex Teltonika Listener V6 ALIVE\n";
+            console.log(`[Health Check] 🟢 Petición HTTP detectada de ${clientAddress}. 200 OK.`);
+            const response = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nConnection: close\r\n\r\nZamex Teltonika Listener V7 (Ultra-Stream) ALIVE\n";
             socket.write(response);
             socket.end();
         } else if (firstByte === 0x00) {
-            console.log(`[Multiplex] 🛸 Tráfico Teltonika detectado. Enrutando a TCP Handler.`);
             handleTeltonikaConnection(socket, chunk, clientAddress);
         } else {
-            console.warn(`[Multiplex] ❓ Tráfico desconocido (Primer byte: ${firstByte.toString(16)}). Cerrando.`);
+            console.warn(`[Multiplex] ❓ Tráfico desconocido (${firstByte.toString(16)}). Bloqueado.`);
             socket.end();
         }
     });
@@ -199,16 +170,17 @@ const server = net.createServer((socket) => {
 
 server.listen(PORT, '0.0.0.0', () => {
     console.log('═══════════════════════════════════════════════════');
-    console.log('  ZAMEX TELEMATICS - ULTRA-LISTENER V6');
-    console.log('  MÓDULO: SMART MULTIPLEX (HTTP + TCP COMBINADO)');
+    console.log('  ZAMEX TELEMATICS - ULTRA-LISTENER V7 (ULTRA-STREAM)');
+    console.log('  MÓDULO: ZERO-LATENCY DATA PUMP ACTIVO');
     console.log(`  🚀 ESCUCHANDO EN PUERTO MAESTRO: ${PORT}`);
     console.log('═══════════════════════════════════════════════════\n');
 });
 
-const shutdownHandler = () => {
-    console.log('\n[System] SIGTERM/SIGINT recibido. Apagando motor...');
+process.on('SIGTERM', () => {
+    console.log('\n[System] SIGTERM recibido. Apagando motor V7...');
     server.close(() => process.exit(0));
-};
-
-process.on('SIGTERM', shutdownHandler);
-process.on('SIGINT', shutdownHandler);
+});
+process.on('SIGINT', () => {
+    console.log('\n[System] SIGINT recibido. Apagando motor V7...');
+    server.close(() => process.exit(0));
+});
