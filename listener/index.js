@@ -134,6 +134,12 @@ const server = net.createServer((socket) => {
 process.on('uncaughtException', (err) => console.error('[ALERTA CRÍTICA] Error global:', err.message));
 process.on('unhandledRejection', (reason) => console.error('[ALERTA CRÍTICA] Promesa caída global:', reason));
 
+// HEARTBEAT: IMPEDIR QUE EL PROCESO DE NODE.JS TERMINE (EVENT LOOP EMPTY)
+// Cuando el socket se cierra y supabase termina, Node podría pensar que ya no hay tareas y hacer process.exit(0)
+setInterval(() => {
+    // Solo existe para anclar el proceso en memoria
+}, 60000);
+
 server.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 ZAMEXIA: THE MASTER BUFFER (Anti-Fragmentación) activo en puerto ${PORT}`);
+    console.log(`🚀 ZAMEXIA: THE MASTER BUFFER (Anti-Fragmentación & Heartbeat) activo en puerto ${PORT}`);
 });
