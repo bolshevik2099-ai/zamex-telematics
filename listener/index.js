@@ -144,6 +144,7 @@ function handleTeltonikaConnection(socket, initialChunk, clientAddress) {
 
     // Escuchar el resto de chunks
     socket.on('data', async (chunk) => {
+        console.log(`[Server TCP] 📥 Recibidos ${chunk.length} bytes adicionales de ${deviceIMEI || clientAddress}`);
         if (dataBuffer.length > 20000) dataBuffer = Buffer.alloc(0);
         dataBuffer = Buffer.concat([dataBuffer, chunk]);
         processBuffer();
@@ -157,6 +158,11 @@ function handleTeltonikaConnection(socket, initialChunk, clientAddress) {
 // SERVIDOR MULTIPLEX (Escucha TODO en un solo puerto)
 // ==========================================
 const server = net.createServer((socket) => {
+    // 🚨 VITAL: Desactivar Algoritmo de Nagle. Sin esto, Node.js acumula el byte de Handshake 0x01 
+    // y no lo envía a la red hasta que el GPS hace timeout y corta la conexión.
+    socket.setNoDelay(true);
+    socket.setKeepAlive(true, 60000);
+
     const clientAddress = `${socket.remoteAddress}:${socket.remotePort}`;
     console.log(`\n[Multiplex] 📡 Nueva conexión en puerta: ${clientAddress}`);
 
